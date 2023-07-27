@@ -2,8 +2,20 @@ var express = require('express');
 var router = express.Router();
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', (req, res, next) => {
+  try {
+    req.db.collection('users').find().toArray()
+        .then(data => {
+            res.json({
+                status: "success",
+                data: data
+            });
+        });
+
+} catch (error) {
+    console.log(error);
+    res.json({ status: "fail", data: error });
+}
 });
 router.post('/',(req,res,next)=>{
   const data = req.body;
