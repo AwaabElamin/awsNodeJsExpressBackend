@@ -8,8 +8,10 @@ router.get('/', (req, res, next)=> {
         .then(data => {
             res.json({
                 status: "success",
-                data: data,
-                summary: data[0].summary
+                data: data[0],
+                summary: data[0].summary,
+                Education: data[0].Education,
+                Certificate: data[0].Certificate
             });
         });
 
