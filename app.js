@@ -34,7 +34,7 @@ app.use((req, res, next) => {
             console.log("connect to Mongo DB...");
             req.db = db;
             next();
-            return;
+            // return;
           }
           req.db = db;
           // console.log('req.db ' + req.db);
