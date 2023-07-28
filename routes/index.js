@@ -11,7 +11,8 @@ router.get('/', (req, res, next)=> {
                 data: data[0],
                 summary: data[0].summary,
                 Education: data[0].Education,
-                Certificate: data[0].Certificate
+                Certificate: data[0].Certificate,
+                Experience: data[0].Experience
             });
         });
 
