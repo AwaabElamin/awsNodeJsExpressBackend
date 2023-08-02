@@ -36,7 +36,7 @@ app.use((req, res, next) => {
             console.log("connect to Mongo DB...");
             req.db = db;
           // console.log('req.db ' + req.db);
-          if ((req.url === '/resume') || (req.url === '/users/login')) {
+          if ((req.url === '/resume') || (req.url === '/users/login') || (req.url == '/users')) {
               // console.log(req.url);
               next();
               return;
