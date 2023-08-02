@@ -19,18 +19,18 @@ router.get('/', (req, res, next) => {
 }
 });
 router.post('/',(req,res,next)=>{
-  const data = req.body;
-    const request = {
-        user_id: data.user_id,
-        city: data.city,
-        state: data.state,
-        title: data.title,
-        phone: data.phone,
-        username: data.username,
-        password:data.password,
-        details: data.details
-    };
-    req.db.collection('users').insertOne(request)
+//   const data = req.body;
+//     const request = {
+//         user_id: data.user_id,
+//         city: data.city,
+//         state: data.state,
+//         title: data.title,
+//         phone: data.phone,
+//         username: data.username,
+//         password:data.password,
+//         details: data.details
+//     };
+    req.db.collection('users').insertOne(req.body)
         .then(data => {
             res.json({ status: "success", data: data });
         }).catch(error => res.json({ status: "fail", data: error }))
