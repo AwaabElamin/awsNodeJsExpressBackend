@@ -65,7 +65,7 @@ app.use('/resume',resumeRoute);
 // error handler
 app.use(function(err, req, res, next) {
   // render the error page
-  res.status(err.status || 500);
+  // res.status(err.status || 500);
   res.json({status: 'error', data:err});
 });
 
