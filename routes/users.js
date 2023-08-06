@@ -24,7 +24,7 @@ router.post('/', (req, res, next) => {
         console.log('post users email', email);
         req.db.collection('users').find({ 'user.email': email }).toArray()
             .then(result => {
-                console.log('result', result)
+                // console.log('result', result)
                 if (result[0]) {
                     res.json({ status: 'fail', data: 'there is account with the same email' })
                 } else {
