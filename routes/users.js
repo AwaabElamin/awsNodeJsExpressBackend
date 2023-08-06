@@ -24,8 +24,8 @@ router.post('/', (req, res, next) => {
         console.log('post users email', email);
         req.db.collection('users').find({ 'user.email': email }).toArray()
             .then(result => {
-                console.log('result', result[0])
-                if (result) {
+                console.log('result', result)
+                if (result[0]) {
                     res.json({ status: 'fail', data: 'there is account with the same email' })
                 } else {
                     req.db.collection('users').insertOne(req.body)
@@ -42,23 +42,35 @@ router.post('/', (req, res, next) => {
 
 });
 router.post('/login', function (req, res, next) {
-    const username = req.body.username;
+    const email = req.body.email;
     const pass = req.body.password;
-    req.db.collection('users').find({ username: username, password: pass }).toArray()
+    req.db.collection('users').find({ email: email, password: pass }).toArray()
         .then(result => {
             if (result[0]) {
                 console.log('result= ' + result[0].password);
-                const data = { username: username, password: pass };
+                const data = { email: email, password: pass };
                 const jwt = new JwtManager();
                 const token = jwt.generate(data);
-                res.json({ status: 'success', accessToken: token, username: username, _id: result[0]._id });
+                res.json({ status: 'success', accessToken: token, email: email, _id: result[0]._id });
                 console.log('data ' + data);
             } else {
                 console.log('nothing');
-                res.json({ status: 'fail', data: 'invalid user name' });
+                res.json({ status: 'fail', data: 'invalid email or password' });
             }
         })
 
+});
+router.post('/forget',(req,res,next)=>{
+    const email = req.body.email;
+    const password = req.body.password;
+    req.db.collection('user').find({email:email}).toArray()
+    .then(result => {
+        if (result[0]) {
+            
+        } else {
+            
+        }
+    })
 });
 
 module.exports = router;
