@@ -20,12 +20,13 @@ router.get('/', (req, res, next) => {
 });
 router.post('/', (req, res, next) => {
     try {
-        email = req.body.email;
-        console.log('post users email', email);
-        req.db.collection('users').find({ 'user.email': email }).toArray()
+        console.log('body',req.body);
+        user_email = req.body.user.email;
+        console.log('post users email', user_email);
+        req.db.collection('users').find({ 'user.email': user_email }).toArray()
             .then(result => {
                 console.log('result', result)
-                if (result[0]) {
+                if (result.length) {
                     res.json({ status: 'fail', data: 'there is account with the same email' })
                 } else {
                     req.db.collection('users').insertOne(req.body)
@@ -44,8 +45,11 @@ router.post('/', (req, res, next) => {
 router.post('/login', function (req, res, next) {
     const email = req.body.email;
     const pass = req.body.password;
-    req.db.collection('users').find({ email: email, password: pass }).toArray()
+    // console.log('email', email);
+    // console.log('password',pass);
+    req.db.collection('users').find({ 'user.email': email, 'user.password': pass }).toArray()
         .then(result => {
+            // console.log('result', result);
             if (result[0]) {
                 console.log('result= ' + result[0].password);
                 const data = { email: email, password: pass };
@@ -62,13 +66,16 @@ router.post('/login', function (req, res, next) {
 });
 router.post('/forget',(req,res,next)=>{
     const email = req.body.email;
+    console.log('email', email);
     const password = req.body.password;
-    req.db.collection('user').find({email:email}).toArray()
+    // req.db.collection('users').find({ 'user.email': email, 'user.password': pass }).toArray()
+    req.db.collection('users').find({'user.email':email}).toArray()
     .then(result => {
+console.log('result', result);
         if (result[0]) {
-            
+            res.json({status:"succes", data:"found user"});
         } else {
-            
+            res.json({status:"fail", data:"user not found"});
         }
     })
 });
