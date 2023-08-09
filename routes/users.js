@@ -4,8 +4,9 @@ const JwtManager = require('../jwt/jwtManager');
 
 /* GET users listing. */
 router.get('/', (req, res, next) => {
+    user_email = req.body.user.email;
     try {
-        req.db.collection('users').find().toArray()
+        req.db.collection('users').find({'user.email': user_email }).toArray()
             .then(data => {
                 res.json({
                     status: "success",
@@ -76,5 +77,4 @@ router.post('/forget',(req,res,next)=>{
         res.json({ status: 'success', data: result });
     });
 });
-
 module.exports = router;
