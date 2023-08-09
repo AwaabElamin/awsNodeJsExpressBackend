@@ -51,12 +51,12 @@ router.post('/login', function (req, res, next) {
         .then(result => {
             // console.log('result', result);
             if (result[0]) {
-                console.log('result= ' + result[0].password);
+                // console.log('result= ' + result[0].user.password);
                 const data = { email: email, password: pass };
                 const jwt = new JwtManager();
                 const token = jwt.generate(data);
                 res.json({ status: 'success', accessToken: token, email: email, _id: result[0]._id });
-                console.log('data ' + data);
+                // console.log('data ' + data);
             } else {
                 console.log('nothing');
                 res.json({ status: 'fail', data: 'invalid email or password' });
@@ -68,21 +68,13 @@ router.post('/forget',(req,res,next)=>{
     const email = req.body.email;
     console.log('email', email);
     const password = req.body.password;
-    req.db.collection('users').find({ 'user.email': email, 'user.password': pass }).toArray()
-    .then(result => {
-        // console.log('result', result);
-        if (result[0]) {
-            // console.log('result= ' + result[0].user.password);
-            const data = { email: email, password: pass };
-            const jwt = new JwtManager();
-            const token = jwt.generate(data);
-            res.json({ status: 'success', accessToken: token, email: email, _id: result[0]._id });
-            // console.log('data ' + data);
-        } else {
-            console.log('nothing');
-            res.json({ status: 'fail', data: 'invalid email or password' });
-        }
+    req.db.collection('users').updateOne({'user.email':email}, 
+    {
+        $set: {'user.password': password}
     })
+    .then(result=>{
+        res.json({ status: 'success', data: result });
+    });
 });
 
 module.exports = router;
