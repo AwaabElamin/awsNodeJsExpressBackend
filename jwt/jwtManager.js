@@ -3,7 +3,7 @@ const secret = 'top-secret';
 
 class jwtManager {
     generate(data) {
-        const token = jwt.sign(data,secret);
+        const token = jwt.sign(data,secret,{ expiresIn: 4 * 60 * 60 });
         return token;
     }
     verify(token){
