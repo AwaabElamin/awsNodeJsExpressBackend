@@ -1,19 +1,26 @@
 var express = require('express');
 var router = express.Router();
+const mongoose = require('mongoose');
+const resumeSchema = mongoose.Schema({
+    summary: { type: String, unique: true },
+    Education: { type: String },
+    Certificate:  {
+        Associate: {type:String},
+        Certificates: {type:String}
+    } ,
+    Experience: {
+        Infosys: {type:String},
+        AwaaabLLC: {type:String}
+    }
+});
+const resumeModel = mongoose.model('resume','');
 
 /* GET home page. */
-router.get('/', (req, res, next) => {
+router.get('/', async(req, res, next) => {
     try {
-        req.db.collection('resume').find().toArray()
-            .then(data => {
-                res.json({
-                    status: "success",
-                    summary: data[0].summary,
-                    Education: data[0].Education,
-                    Certificate: data[0].Certificate,
-                    Experience: data[0].Experience
-                });
-            });
+        const resume = await resumeModel.find({});
+        console.log('resume',resume);
+        res.json({ status: "success", data: [] }); 
 
     } catch (error) {
         console.log(error);
