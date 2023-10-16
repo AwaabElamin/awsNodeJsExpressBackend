@@ -32,7 +32,6 @@ class UserCollection {
                 return { success: false, message: error };
             }
         }
-
     }
     static async findAndUpdate(id, user) {
         console.log('id: ', id);
@@ -53,7 +52,6 @@ class UserCollection {
         } catch (error) {
             return { success: false, message: error };
         }
-
     }
 
     //for login perpose
