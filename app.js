@@ -15,7 +15,7 @@ const resumeRoute = require('./routes/resume');
 
 var app = express();
 const connectoinString =
-  'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/myweb2?retryWrites=true&w=majority'
+  'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority'
 try {
   mongoose.connect(connectoinString);
   console.log("DB connected");
