@@ -18,7 +18,7 @@ const resumeSchema = mongoose.Schema({
 const resumeModel = mongoose.model('resume', resumeSchema);
 class ResumeCollection {
     static async findAll() {
-        const resume = await resumeModel.find({});
+        const resume = await resumeModel.findOne({});
         console.log("Find All:-", resume);
         return resume;
     }
