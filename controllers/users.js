@@ -1,40 +1,41 @@
 const bcrypt = require('bcrypt');
 const usersModel = require('../models/users');
 exports.create = async (req, res) => {
+    console.log("req.body.user", req.body.user);
     const user = {
-        email: req.body.email,
-        password: bcrypt.hashSync(req.body.password, 8),
-        phone: req.body.phone,
-        firstname: req.body.firstname,
-        lastname: req.body.lastname,
-        title: req.body.title,
-        city: req.body.city,
-        state: req.body.state,
-        country: req.body.country,
-        linkedin: req.body.linkedin,
-        github: req.body.github,
-        webside: req.body.webside,
-        summary: req.body.summary,
-        keySkills: req.body.keySkills,
-        technicalSkills: req.body.technicalSkills,
+        email: req.body.user.email,
+        password: bcrypt.hashSync(req.body.user.password, 8),
+        phone: req.body.user.phone,
+        firstname: req.body.user.firstname,
+        lastname: req.body.user.lastname,
+        title: req.body.user.title,
+        city: req.body.user.city,
+        state: req.body.user.state,
+        country: req.body.user.country,
+        linkedin: req.body.user.linkedin,
+        github: req.body.user.github,
+        webside: req.body.user.webside,
+        summary: req.body.user.summary,
+        keySkills: req.body.user.keySkills,
+        technicalSkills: req.body.user.technicalSkills,
         education: [{
-            universityName: req.body.education.universityName,
-            degree: req.body.education.degree,
-            fieldName: req.body.education.fieldName,
-            month: req.body.education.month,
-            year: req.body.education.year,
-            location: req.body.education.location,
-            gpa: req.body.education.gpa
+            universityName: req.body.user.education.universityName,
+            degree: req.body.user.education.degree,
+            fieldName: req.body.user.education.fieldName,
+            month: req.body.user.education.month,
+            year: req.body.user.education.year,
+            location: req.body.user.education.location,
+            gpa: req.body.user.education.gpa
         }],
         experience: [{
-            companyName: req.body.experience.companyName,
-            jobTitle: req.body.experience.jobTitle,
-            startMonth: req.body.experience.startMonth,
-            startYear: req.body.experience.startYear,
-            endMonth: req.body.experience.endMonth,
-            endYear: req.body.experience.endYear,
-            location: req.body.experience.location,
-            summary: req.body.experience.summary
+            companyName: req.body.user.experience.companyName,
+            jobTitle: req.body.user.experience.jobTitle,
+            startMonth: req.body.user.experience.startMonth,
+            startYear: req.body.user.experience.startYear,
+            endMonth: req.body.user.experience.endMonth,
+            endYear: req.body.user.experience.endYear,
+            location: req.body.user.experience.location,
+            summary: req.body.user.experience.summary
         }],
         Additional: []
     }

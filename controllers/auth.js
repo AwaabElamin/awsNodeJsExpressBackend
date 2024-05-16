@@ -11,10 +11,10 @@ exports.login = async (req, res) => {
         if (user) {
             console.log('user', user);
             if (bcrypt.compareSync(password, user.password)) {
-                const data = { email: email, password: pass };
+                const data = { email: email, password: password };
                 const jwt = new JwtManager();
                 const token = jwt.generate(data);
-                res.json({ status: 'success', accessToken: token, email: email, _id: result[0]._id });
+                res.json({ status: 'success', accessToken: token, email: email, _id: user._id });
             } else {
                 res.send({ success: false, message: 'Wrong password' });
             }
