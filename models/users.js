@@ -67,11 +67,16 @@ class UserCollection {
     static async findAndUpdate(id, user) {
         console.log('id: ', id);
         try {
-            const updatedUser = await userModel.findByIdAndUpdate(id, user);
-            console.log('findAndUpdate:- ', updatedUser);
-            return { success: true, data: updatedUser };
+            const foundedUser = await userModel.findOne({ email:id});
+            if(foundedUser) {
+                const updatedUser = await userModel.findByIdAndUpdate(foundedUser._id, user);
+                console.log('findAndUpdate:- ', updatedUser);
+                return { status: 'success', data: updatedUser };
+            }
+            return {status:'fail', message:'user not founded by email: '+id}
+            
         } catch (error) {
-            return { success: false, message: error };
+            return { status: 'fail', message: error.message };
 
         }
     }

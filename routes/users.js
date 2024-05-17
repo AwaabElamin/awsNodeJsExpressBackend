@@ -69,7 +69,9 @@ router.post('/login', authorizationController.login);
 
 // });
 
-router.post('/forget',authorizationController.authorize, usersController.update)
+router.post('/forget',
+// authorizationController.authorize, 
+usersController.update)
 // router.post('/forget',(req,res,next)=>{
 //     const email = req.body.email;
 //     console.log('email', email);
