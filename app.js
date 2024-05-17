@@ -7,17 +7,17 @@ const mongoose = require('mongoose');
 const jwtManager = require('./jwt/jwtManager');
 var path = require('path');
 var logger = require('morgan');
-const autherizeRouter = require('./routes/auth');
+const authorizeRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
-
+const projectRouter = require('./routes/project')
 var indexRouter = require('./routes/index');
 const resumeRoute = require('./routes/resume');
 
 var app = express();
-const connectoinString =
+const connectionString =
   'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority'
 try {
-  mongoose.connect(connectoinString);
+  mongoose.connect(connectionString);
   console.log("DB connected");
 } catch (error) {
   console.log('Error: ', err);
@@ -67,9 +67,10 @@ app.use(cors());
 //       })
 // });
 // app.use('/', indexRouter);
-app.use('/', autherizeRouter);
+app.use('/', authorizeRouter);
 app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
+app.use('/projects', projectRouter);
 
 // error handler
 app.use(function (err, req, res, next) {
