@@ -14,15 +14,16 @@ exports.login = async (req, res) => {
                 const data = { email: email, password: password };
                 const jwt = new JwtManager();
                 const token = jwt.generate(data);
+                console.log("Token: ", token);
                 res.json({ status: 'success', accessToken: token, email: email, _id: user._id });
             } else {
-                res.send({ success: false, message: 'Wrong password' });
+                res.send({ status: 'fail', message: 'Wrong password' });
             }
         } else {
-            res.send({ success: false, message: 'The user is not found' });
+            res.send({ status: 'fail', message: 'The user is not found' });
         }
     } else {
-        res.send({ success: false, data: 'Please provide the email and password' });
+        res.send({ status: 'fail', data: 'Please provide the email and password' });
     }
 }
 exports.authorize = (req, res, next) => {
@@ -33,7 +34,7 @@ exports.authorize = (req, res, next) => {
         const data = jwt.verify(token)
         console.log('Data', data);
         if (!data) {
-            res.status(401).send({ success: false, message: 'Unauthenticated' });
+            res.send({ status: 'fail', message: 'Unauthenticated' });
         }
         next();
         // console.log('user', user);
@@ -51,7 +52,7 @@ exports.authorize = (req, res, next) => {
         //         }
         // })
         } else {
-            res.status(401).send({ success: false, message: 'Unauthenticated' });
+            res.send({ status: 'fail', message: 'Unauthenticated' });
         }
     
 }
