@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const projectSchema = mongoose.Schema({
-    email: { type: String, unique: true },
+    email: { type: String, unique: false },
     projectName: { type: String, unique: true }
 });
 const projectModel = mongoose.model('projects', projectSchema);
@@ -19,6 +19,10 @@ class ProjectCollection{
                 return { status:'fail', message: error };
             }
         }
+    }
+    static async getAllProjects(email){
+        const projects = await projectModel.find({ email:email });
+        return projects;
     }
 }
 module.exports = ProjectCollection;

@@ -10,3 +10,8 @@ exports.create = async (req, res) => {
     console.log('add project', projectAdded);
     res.send({status:'success', message: projectAdded});
 }
+exports.getAllProjects = async (req, res) => {
+    const email = req.params.email;
+    const allProjects = await projectModel.getAllProjects(email);
+    res.send({status:"success", message: allProjects })
+}
