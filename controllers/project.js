@@ -15,3 +15,14 @@ exports.getAllProjects = async (req, res) => {
     const allProjects = await projectModel.getAllProjects(email);
     res.send({status:"success", message: allProjects })
 }
+exports.addUserStory = async (req,res) => {
+    const userStory={
+        email: req.body.email,
+        projectId : req.body.PID,
+        actor:req.body.actor,
+        cRUD:req.body.cRUD,
+        action:req.body.action
+    }
+    const us= await projectModel.insertUserStory(userStory);
+    res.send({status:"success", message:us})
+}
