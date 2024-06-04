@@ -31,14 +31,10 @@ class ProjectCollection {
     }
     static async getAllUserStories(email,PID) {
         try {
-            const project = await projectModel.find({ email: email, _id:PID});
-        return {status: 'success', message:project.userStories};
+            const project = await projectModel.findOne({ email: email, _id:PID});
+            return {status: 'success', message:project.userStories};
         } catch (error) {
-            if (error.code == 11000) {
-                return { status: 'success', message: "project already exist" };
-            } else {
-                return { status: 'fail', message: error };
-            }
+            if (error.code == 11000) {return { status: 'fail', message: error };}
         }
         
     }
