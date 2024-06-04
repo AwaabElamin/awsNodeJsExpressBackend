@@ -26,3 +26,9 @@ exports.addUserStory = async (req,res) => {
     const us= await projectModel.insertUserStory(userStory);
     res.send({status:"success", message:us})
 }
+exports.getAllUserStories = async (req,res) => {
+    const email = req.params.email;
+    const PID = req.params.PID;
+    const us= await projectModel.getAllUserStories(email,PID);
+    res.send(us)
+}
