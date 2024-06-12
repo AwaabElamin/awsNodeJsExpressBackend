@@ -24,7 +24,7 @@ exports.addUserStory = async (req,res) => {
         action:req.body.action
     }
     const us= await projectModel.insertUserStory(userStory);
-    res.send({status:"success", message:us})
+    res.send(us)
 }
 exports.getAllUserStories = async (req,res) => {
     const email = req.params.email;
@@ -37,4 +37,11 @@ exports.getAllActors = async(req,res) => {
     const PID = req.params.PID;
     const actors = await projectModel.getAllActors(email,PID);
     res.send(actors)
+}
+exports.addActor = async(req,res) =>{
+    const  email= req.body.email;
+    const projectId = req.body.PID;
+    const actor= req.body.actor;
+    const response = await projectModel.insertActor(email,projectId,actor);
+    res.send(response);
 }

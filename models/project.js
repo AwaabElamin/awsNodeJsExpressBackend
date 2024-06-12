@@ -29,7 +29,7 @@ class ProjectCollection {
     static async getAllProjects(email) {
         try {
             const projects = await projectModel.find({ email: email });
-            return projects;
+            return {status:'success', message:projects};
         } catch (error) {
             return { status: 'fail', message: error };
         }
@@ -56,15 +56,26 @@ class ProjectCollection {
         }
         try {
             const us = await projectModel.findOneAndUpdate(filter, update);
-            return us;
+            return { status: 'success', message:us};
         } catch (error) {
             return { status: 'fail', message: error };
         }
     }
     static async getAllActors(email, PID) {
         try {
-            const actors = await projectsModel.findOne({ email: email, _id: PID });
-            return { status: 'success', message: project.userStories };
+            const project = await projectModel.findOne({ email: email, _id: PID });
+            // console.log("Actors", project);
+            return { status: 'success', message: project.actors };
+        } catch (error) {
+            return { status: 'fail', message: error };
+        }
+    }
+    static async insertActor(email,projectId,actor){
+        const filter = { email: email };
+        const update = {$push: {actors: actor}};
+        try {
+            const act = await projectModel.findOneAndUpdate(filter, update);
+            return { status: 'success', message:act};
         } catch (error) {
             return { status: 'fail', message: error };
         }
