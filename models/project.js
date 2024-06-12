@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const projectSchema = mongoose.Schema({
     email: { type: String, unique: false },
     projectName: { type: String, unique: true },
+    actors: { type: Array, unique: false },
     userStories: [{
         actor: { type: String, unique: false },
         cRUD: { type: String, unique: false },
@@ -26,17 +27,21 @@ class ProjectCollection {
         }
     }
     static async getAllProjects(email) {
-        const projects = await projectModel.find({ email: email });
-        return projects;
-    }
-    static async getAllUserStories(email,PID) {
         try {
-            const project = await projectModel.findOne({ email: email, _id:PID});
-            return {status: 'success', message:project.userStories};
+            const projects = await projectModel.find({ email: email });
+            return projects;
         } catch (error) {
-            if (error.code == 11000) {return { status: 'fail', message: error };}
+            return { status: 'fail', message: error };
         }
-        
+    }
+    static async getAllUserStories(email, PID) {
+        try {
+            const project = await projectModel.findOne({ email: email, _id: PID });
+            return { status: 'success', message: project.userStories };
+        } catch (error) {
+            return { status: 'fail', message: error };
+        }
+
     }
     static async insertUserStory(userStory) {
         const filter = { email: userStory.email }
@@ -49,11 +54,20 @@ class ProjectCollection {
                 }
             }
         }
-        const us = await projectModel.findOneAndUpdate(filter, update);
-        // console.log('us1',us1);
-        const us1 = await projectModel.findOne(filter);
-        console.log('us', us1);
-        return us;
+        try {
+            const us = await projectModel.findOneAndUpdate(filter, update);
+            return us;
+        } catch (error) {
+            return { status: 'fail', message: error };
+        }
+    }
+    static async getAllActors(email, PID) {
+        try {
+            const actors = await projectsModel.findOne({ email: email, _id: PID });
+            return { status: 'success', message: project.userStories };
+        } catch (error) {
+            return { status: 'fail', message: error };
+        }
     }
 }
 module.exports = ProjectCollection;

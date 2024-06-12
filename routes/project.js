@@ -6,4 +6,5 @@ router.post('',projectController.create);
 router.post('/userStory',projectController.addUserStory);
 router.get('/userStory/:email/:PID',projectController.getAllUserStories);
 router.get('/:email',projectController.getAllProjects);
+router.get('/actors/:email/:PID',projectController.getAllActors);
 module.exports = router;
