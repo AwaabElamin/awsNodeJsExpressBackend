@@ -8,4 +8,6 @@ router.get('/userStory/:email/:PID',projectController.getAllUserStories);
 router.get('/:email',projectController.getAllProjects);
 router.get('/actors/:email/:PID',projectController.getAllActors);
 router.post('/actors',projectController.addActor);
+router.post('/useCase/:email/:PID',projectController.addUseCase);
+router.get('/useCase/:email/:PID/:id',projectController.getUseCase);
 module.exports = router;

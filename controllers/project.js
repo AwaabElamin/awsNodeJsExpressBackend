@@ -45,3 +45,18 @@ exports.addActor = async(req,res) =>{
     const response = await projectModel.insertActor(email,projectId,actor);
     res.send(response);
 }
+exports.addUseCase = async(req,res) =>{
+    const  email=req.params.email;
+    const projectId = req.params.PID;
+    const useCase= req.body.useCase;
+    const response = await projectModel.insertUseCase(email,projectId,useCase);
+    res.send(response);
+}
+exports.getUseCase = async(req,res) => {
+    const email = req.params.email;
+    const projectId = req.params.PID;
+    const id= req.params.id;
+    const response = await projectModel.selectUseCase(email,projectId,id);
+    res.send(response);
+
+}
