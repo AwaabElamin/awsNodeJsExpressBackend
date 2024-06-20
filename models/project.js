@@ -116,20 +116,20 @@ class ProjectCollection {
                 'userStories.$.Preconditions': useCase.Preconditions,
                 'userStories.$.postCondition': useCase.postCondition,
                 'userStories.$.mainSuccessScenario': useCase.mainSuccessScenario,
-                'userStories.$.extensions': useCase.mainSuccessScenario,
-                'userStories.$.frequencyOfUse': useCase.mainSuccessScenario,
-                'userStories.$.status': useCase.mainSuccessScenario,
-                'userStories.$.owner': useCase.mainSuccessScenario,
-                'userStories.$.priority': useCase.mainSuccessScenario
+                'userStories.$.extensions': useCase.extensions,
+                'userStories.$.frequencyOfUse': useCase.frequencyOfUse,
+                'userStories.$.status': useCase.status,
+                'userStories.$.owner': useCase.owner,
+                'userStories.$.priority': useCase.priority
             }
         }
         try {
             const act = await projectModel.findOneAndUpdate(filter, update);
-            uc = await act.userStories.find((n) => n._id = useCase.id)
-            console.log("act", uc);
-            return { status: 'success', message: uc };
+            // uc = await act.userStories.find((n) => n._id = useCase.id)
+            console.log("act", act);
+            return { status: 'success', message: act };
         } catch (error) {
-            return { status: 'fail', message: "error" };
+            return { status: 'fail', message: error };
         }
     }
     static async selectUseCase(email, projectId, id) {
