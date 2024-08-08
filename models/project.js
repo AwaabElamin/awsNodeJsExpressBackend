@@ -9,6 +9,8 @@ const projectSchema = mongoose.Schema({
         cRUD: { type: String, unique: false },
         action: { type: String, unique: false },
         title: { type: String, unique: false },
+        titleColor: { type: String, unique: false },
+        titleSize: { type: String, unique: false },
         description: { type: String, unique: false },
         PrimaryActor: { type: String, unique: false },
         Preconditions: { type: String, unique: false },
@@ -18,7 +20,13 @@ const projectSchema = mongoose.Schema({
         frequencyOfUse: { type: String, unique: false },
         status: { type: String, unique: false },
         owner: { type: String, unique: false },
-        priority: { type: String, unique: false }
+        priority: { type: String, unique: false },
+        inputsSize: { type: String, unique: false },
+        inputsColor: { type: String, unique: false },
+        inputsContent: { type: String, unique: false },
+        viewsSize: { type: String, unique: false },
+        viewsColor: { type: String, unique: false },
+        viewsContent: { type: String, unique: false }
     }],
 });
 const projectModel = mongoose.model('projects', projectSchema);
@@ -126,7 +134,7 @@ class ProjectCollection {
         try {
             const act = await projectModel.findOneAndUpdate(filter, update);
             // uc = await act.userStories.find((n) => n._id = useCase.id)
-            console.log("act", act);
+            // console.log("act", act);
             return { status: 'success', message: act };
         } catch (error) {
             return { status: 'fail', message: error };
@@ -141,6 +149,34 @@ class ProjectCollection {
             });
 
             return { status: 'success', message: useCase };
+        } catch (error) {
+            return { status: 'fail', message: error };
+        }
+    }
+    static async updateUI(email,projectId,userStoryId,uiData){
+        // console.log("usID", userStoryId);
+        let userInterface = [];
+        const filter = { email: email, 'userStories._id': userStoryId };
+        const update = {
+            $set: {
+                'userStories.$.titleColor': uiData.title.color,
+                'userStories.$.titleSize': uiData.title.size,
+                'userStories.$.inputsSize': uiData.inputs.size,
+                'userStories.$.inputsColor': uiData.inputs.color,
+                'userStories.$.inputsContent': uiData.inputs.content,
+                'userStories.$.viewsSize': uiData.views.size,
+                'userStories.$.viewsColor': uiData.views.color,
+                'userStories.$.viewsContent': uiData.views.content
+            }
+        }
+        // console.log("Update date", update);
+        try {
+            const ui = await projectModel.findOneAndUpdate(filter, update);
+            ui.userStories.forEach(element => {
+                element._id == userStoryId ? userInterface = element : null;
+            });
+            console.log("user interface", userInterface);
+            return { status: 'success', message: userInterface };
         } catch (error) {
             return { status: 'fail', message: error };
         }

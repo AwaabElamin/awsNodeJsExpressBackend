@@ -10,4 +10,5 @@ router.get('/actors/:email/:PID',projectController.getAllActors);
 router.post('/actors',projectController.addActor);
 router.post('/useCase/:email/:PID',projectController.addUseCase);
 router.get('/useCase/:email/:PID/:id',projectController.getUseCase);
+router.post('/ui/:email/:PID/:id',projectController.updateUI);
 module.exports = router;

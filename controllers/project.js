@@ -60,3 +60,12 @@ exports.getUseCase = async(req,res) => {
     res.send(response);
 
 }
+exports.updateUI = async(req,res) => {
+    const  email=req.params.email;
+    const projectId = req.params.PID;
+    const userStoryId= req.params.id;
+    const uiData = req.body.uiData;
+    // console.log("uiData", uiData);
+    const response = await projectModel.updateUI(email,projectId,userStoryId,uiData);
+    res.send(response);
+}
