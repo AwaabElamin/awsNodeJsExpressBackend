@@ -9,7 +9,8 @@ var path = require('path');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
-const projectRouter = require('./routes/project')
+const projectRouter = require('./routes/project');
+const mainMainRouter = require('./routes/mainMain');
 var indexRouter = require('./routes/index');
 const resumeRoute = require('./routes/resume');
 
@@ -71,6 +72,7 @@ app.use('/', authorizeRouter);
 app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
 app.use('/projects', projectRouter);
+app.use('/mainMain', mainMainRouter);
 
 // error handler
 app.use(function (err, req, res, next) {
