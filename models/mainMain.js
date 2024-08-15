@@ -1,9 +1,14 @@
 const mongoose = require('mongoose');
-const mainMainSchema = mongoose.Schema({})
+const mainMainSchema = mongoose.Schema({
+    header : {type:String, unique:false},
+    points : {type:Array, unique:false}
+})
 const mainMainModel = mongoose.model("mainMain",mainMainSchema);
 class MainMainCollection {
     static async getProjects(){
         try {
+            const testProjects = await mainMainModel.find({});
+            console.log("projects: ", testProjects);
             const projects = [
                 {
                   header:"MIS For Awaaab LLC",
