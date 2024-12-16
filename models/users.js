@@ -90,7 +90,7 @@ class UserCollection {
         }
     }
 
-    //for login perpose
+    //for login purpose
     static async findByEmail(email) {
         const foundedUser = await userModel.findOne({ email: email });
         console.log('find user by email:- ', foundedUser);

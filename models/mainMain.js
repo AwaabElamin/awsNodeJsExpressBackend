@@ -7,8 +7,7 @@ const mainMainModel = mongoose.model("mainMain",mainMainSchema);
 class MainMainCollection {
     static async getProjects(){
         try {
-            const testProjects = await mainMainModel.find({});
-            console.log("projects: ", testProjects);
+            // const testProjects = await mainMainModel.find({});
             const projects = [
                 {
                   header:"MIS For Awaaab LLC",
@@ -38,9 +37,9 @@ class MainMainCollection {
                   ]
                 }
               ];
-            return { status: 'success', message: projects };
+            return projects;
         } catch (error) {
-            return { status: 'fail', message: error };
+            return error;
         }
     }
 }
