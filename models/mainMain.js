@@ -10,30 +10,31 @@ class MainMainCollection {
             // const testProjects = await mainMainModel.find({});
             const projects = [
                 {
-                  header:"MIS For Awaaab LLC",
+                  header:"Auto Service",
                   points: [
-                    "Create MIS web site serve provide all SDLC steps to let client fills them directly.",
-                    "I doing all three level (frontend, backend and DB ) for each feature daily  and push it to GitHub.",
+                    "Display cars with all their details within an integrated package of tools that facilitate the mechanism of access and communication.",
+                    "Quick exchange and modification of car details and insertion and deletion of attached photos.",
                     "Deploy all code using ci/cd via GitHub and achieved 99% of business rules.",
-                    "Technologies used: VS code, Angular, Node JS,  MongoDB Atlas, GitHub, AWS (Amplify, App Runner, Code Pipeline, Route53), DevOps."
+                    "After-sales services such as oil change and mechanical review can be added."
                   ],
                 },
                 {
-                  header:"MIS For Transporter LLC",
+                  header:"Groceries Shop",
                   points:[
-                    "Contributed to the design and development of internal software applications, APIs, and libraries to serves three Frontend apps.",
-                    "(web, android mobile, desktop) and achieved a 90% of owner requires.",
-                    "Worked with a highly motivated team in an Agile environment for all lifecycle stages.",
-                    "Deploy all code using ci/cd via GitHub and achieved 99% of business rules.",
-                    "Technologies used: Visual Studio .Net 6 C Sharp, GitHub, AWS (EC, S3, RDS and Route53), DevOps"
+                    "Display a list of all products, their prices and types.",
+                    "Possibility of updating products periodically.",
+                    "Enabling the customer to select and reserve products to be ready before his arrival.",
+                    "Possibility of linking to the delivery program."
                   ]
                 },
                 {
-                  header:"Web Application For Mosta LLC",
+                  header:"Delivery Service",
                   points:[
-                    "Developed web application using WIX platform and achieved 100% of requirements.",
-                    "Increased market base by double and decreased Operating costs  10%.",
-                    "Technology used: WIX platform, AWS SNS, google domain."
+                    "user-friendly interface.",
+                    "real-time order tracking.",
+                    "managing delivery drivers, location services, order history.", 
+                    "ability to browse menus or product listings", 
+                    "option to schedule deliveries."
                   ]
                 }
               ];
