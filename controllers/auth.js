@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const userModel = require('../models/users');
 const connectUsersDB = require('mongoose');
 const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority';
+    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 exports.login = async (req, res) => {
     console.log("login controller");
     const { email, password } = req.body;
@@ -39,7 +39,6 @@ exports.login = async (req, res) => {
 exports.authorize = (req, res, next) => {
     if (req.headers.authorization) {
         const token = req.headers.authorization.split(' ')[1];
-
         const jwt = new JwtManager();
         const data = jwt.verify(token)
         console.log('Data', data);

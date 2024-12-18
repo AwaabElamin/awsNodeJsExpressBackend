@@ -1,43 +1,14 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
-const userSchema = mongoose.Schema({
+const connectToUsersDB = require('mongoose');
+const userSchema = connectToUsersDB.Schema({
     email: { type: String, unique: true },
     password: { type: String },
     phone: { type: String },
     firstname:{type: String},
-    lastname: {type: String},
-    title: {type: String},
-    city: {type: String},
-    state: {type: String},
-    country: {type: String},
-    linkedin: {type: String},
-    github: {type: String},
-    webside: {type: String},
-    summary: {type: String},
-    keySkills: {type: String},
-    technicalSkills: {type: String},
-    education:[{
-        universityName: {type: String},
-        fieldName: {type: String},
-        month: {type: String},
-        year: {type: String},
-        location: {type: String},
-        gpa: {type: String},
-        type: {type: String},
-    }],
-    experience:[{
-        companyName: {type: String},
-        jobTitle: {type: String},
-        StartMonth: {type: String},
-        StartYear: {type: String},
-        endMonth: {type: String},
-        endYear: {type: String},
-        location: {type: String},
-    }],
-    Additional:[]
+    lastname: {type: String}
 })
-const userModel = mongoose.model('users', userSchema);
+const userModel = connectToUsersDB.model('users', userSchema);
 class UserCollection {
     static async findAll() {
         const users = await userModel.find({});
