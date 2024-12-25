@@ -8,32 +8,36 @@ exports.login = async (req, res) => {
     console.log("login controller");
     const { email, password } = req.body;
     console.log(`username: ${email}, password: ${password}`);
-    await connectUsersDB.connect(connectionString)
-        .then(async () => {
-            let user = await userModel.findByEmail(email);
-            if (email, password) {
-                if (user) {
-                    console.log('user', user);
-                    if (bcrypt.compareSync(password, user.password)) {
-                        const data = { email: email, password: password };
-                        const jwt = new JwtManager();
-                        const token = jwt.generate(data);
-                        console.log("Token: ", token);
-                        res.json({ status: 'success', accessToken: token, email: email, _id: user._id });
-                    } else {
-                        res.send({ status: 'fail', message: 'Wrong password' });
-                    }
+    // await connectUsersDB.connect(connectionString)
+    //     .then(async () => {
+
+    if (email, password) {
+        try {
+            const userFound = await userModel.findByEmail(email);
+            console.log('user', userFound);
+            if (userFound) {                
+                if (bcrypt.compareSync(password, userFound.password)) {
+                    const data = { email: email, password: password };
+                    const jwt = new JwtManager();
+                    const token = jwt.generate(data);
+                    console.log("Token: ", token);
+                    res.json({ status: 'success', accessToken: token, email: email, _id: userFound._id });
                 } else {
-                    res.send({ status: 'fail', message: 'The user is not found' });
+                    res.send({ status: 'fail', message: 'Wrong password' });
                 }
             } else {
-                res.send({ status: 'fail', data: 'Please provide the email and password' });
+                console.log('Awaab', userFound);
+                res.send({ status: 'fail', message: 'The user is not found' });
             }
-        })
-        .catch(error => {
+        }
+        catch (error) {
             console.log("Route Users login catch connected", error);
             res.send({ status: "error", data: error })
-        });
+        }
+    } else {
+        res.send({ status: 'fail', data: 'Please provide the email and password' });
+    }
+
 
 }
 exports.authorize = (req, res, next) => {

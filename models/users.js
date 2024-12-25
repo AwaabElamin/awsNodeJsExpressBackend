@@ -12,7 +12,7 @@ const userSchema = connectToUsersDB.Schema({
     lastname: { type: String }
 })
 const userModel = connectToUsersDB.model('users', userSchema);
-const conn = connectToUsersDB.createConnection(connectionString);
+// const conn = connectToUsersDB.createConnection(connectionString);
 class UserCollection {
     static async findAll() {
         const users = await userModel.find({});
@@ -82,9 +82,18 @@ class UserCollection {
 
     //for login purpose
     static async findByEmail(email) {
-        const foundedUser = await userModel.findOne({ email: email });
-        console.log('find user by email:- ', foundedUser);
-        return foundedUser;
+        const result = await connectToUsersDB.connect(connectionString)
+            .then(async (Data) => {
+                // console.log('Data', Data);
+                const foundedUser = await userModel.findOne({ email: email });
+                console.log('find user by email:- ', foundedUser);
+                await connectToUsersDB.disconnect();
+                return foundedUser;
+            })
+            .catch(error => {
+                return error;
+            })
+        return result;
     }
 }
 module.exports = UserCollection;

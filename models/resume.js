@@ -1,6 +1,7 @@
 const connectResumeDB = require('mongoose');
-
-const resumeSchema = connectResumeDB.Schema({
+const connectionString =
+    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
+const resumeSchema = {
     summary: { type: String, unique: true },
     Education: {
         master: { type: String },
@@ -14,7 +15,7 @@ const resumeSchema = connectResumeDB.Schema({
         Infosys: { type: String },
         AwaaabLLC: { type: String }
     }
-});
+};
 const educationSchema = {
     email: { type: String },
     universityName: { type: String },
@@ -52,30 +53,45 @@ class ResumeCollection {
         }
     }
     static async getEducation() {
-        try {
+        const edu = await connectResumeDB.connect(connectionString)
+        .then(async()=> {
+            console.log('connect to education');
             const educations = await educationModel.find({});
+            // await connectResumeDB.disconnect();
             return educations;
-        } catch (error) {
+        })
+        .catch( (error)=>{
             return error;
-        }
+        });
+        return edu;
     }
     static async getExperience() {
-        try {
+        const expe = await connectResumeDB.connect(connectionString)
+        .then( async()=>{
+            console.log('connect to experience');
             const experiences = await experienceModel.find({});
+            await connectResumeDB.disconnect();
             return experiences;
-        } catch (error) {
+        })
+        .catch((error)=>{
             console.log('error in getting experience', error);
             return error;
-        }
+        });
+        return expe;
     }
     static async getSummary() {
-        try {
+        const summary = await connectResumeDB.connect(connectionString)
+        .then(async()=> {
+            console.log('connect to summary');
             const summaries = await summaryModel.find({});
+            // await connectResumeDB.disconnect();
             return summaries;
-        } catch (error) {
+        })
+        .catch ((error) =>{
             console.log('error in getting summary', error);
             return error;
-        }
+        });
+        return summary;
     }
 }
 module.exports = ResumeCollection;
