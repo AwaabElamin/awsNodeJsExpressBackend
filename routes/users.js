@@ -9,4 +9,5 @@ router.get('',authorizationController.authorize,usersController.getAll);
 router.post('',usersController.create);
 router.post('/login', authorizationController.login);
 router.post('/forget',usersController.update);
+router.post('/userInfo',authorizationController.authorize,usersController.getUserByEmail);
 module.exports = router;

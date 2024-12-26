@@ -57,3 +57,31 @@ exports.delete = async (req, res) => {
     console.log('deleted user:- ', deletedUser);
     res.send(deletedUser);
 }
+exports.getUserByEmail = async(req,res) =>{
+    const email = req.body.email;
+    console.log('email', email);
+    if (email) {
+        try {
+            const userFound = await usersModel.findByEmail(email);
+            if (userFound) {
+                res.send({
+                    status:'success',
+                    data:{
+                        email:email,
+                        phone:userFound.phone,
+                        firstname:userFound.firstname,
+                        lastname:userFound.lastname,
+                        password:""
+                    }
+                })
+            } else {
+                res.send({ status: 'fail', message: 'The user is not found' });
+            }
+        } catch (error) {
+            console.log("error get user by email", error);
+            res.send({ status: "error", data: error })
+        }
+    } else {
+        res.send({ status: 'fail', data: 'Please provide the email' });
+    }
+}

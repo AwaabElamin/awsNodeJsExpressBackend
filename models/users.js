@@ -86,7 +86,7 @@ class UserCollection {
             .then(async (Data) => {
                 // console.log('Data', Data);
                 const foundedUser = await userModel.findOne({ email: email });
-                console.log('find user by email:- ', foundedUser);
+                // console.log('find user by email:- ', foundedUser);
                 await connectToUsersDB.disconnect();
                 return foundedUser;
             })

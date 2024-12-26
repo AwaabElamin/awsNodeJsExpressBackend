@@ -26,7 +26,7 @@ exports.login = async (req, res) => {
                     res.send({ status: 'fail', message: 'Wrong password' });
                 }
             } else {
-                console.log('Awaab', userFound);
+                // console.log('Awaab', userFound);
                 res.send({ status: 'fail', message: 'The user is not found' });
             }
         }
@@ -42,30 +42,17 @@ exports.login = async (req, res) => {
 }
 exports.authorize = (req, res, next) => {
     if (req.headers.authorization) {
-        const token = req.headers.authorization.split(' ')[1];
+        const token = req.headers.authorization.split(' ')[1];        
+        // console.log('token', token);
         const jwt = new JwtManager();
         const data = jwt.verify(token)
-        console.log('Data', data);
+        // console.log('Data', data);
         if (!data) {
             res.send({ status: 'fail', message: 'Unauthenticated' });
         }
         next();
-        // console.log('user', user);
-        // jwt.verify(token,(err, user)=>{
-        //     req.user = user;
-        //     if(err){
-        //         console.log('err',err);
-        //         if (err.TokenExpiredError = 'jwt expired') {
-        //             res.status(401).send({success:false, message:'token is expires'});
-        //         } else {
-        //             res.status(403).send({success: false, message:'Forbidden'});
-        //         }
-        //     }else{
-        //         next();
-        //         }
-        // })
     } else {
-        res.send({ status: 'fail', message: 'Unauthenticated' });
+        res.send({ status: 'fail', message: 'no Authorization' });
     }
 
 }
