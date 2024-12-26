@@ -13,6 +13,7 @@ const projectRouter = require('./routes/project');
 const mainMainRouter = require('./routes/mainMain');
 var indexRouter = require('./routes/index');
 const resumeRoute = require('./routes/resume');
+const autoRouter = require('./routes/auto');
 
 var app = express();
 
@@ -31,6 +32,7 @@ app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
 app.use('/projects', projectRouter);
 app.use('/mainMain', mainMainRouter);
+app.use('/auto',autoRouter)
 
 // error handler
 app.use(function (err, req, res, next) {
