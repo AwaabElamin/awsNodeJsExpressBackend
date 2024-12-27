@@ -25,21 +25,22 @@ class UserCollection {
         return user;
     }
     static async create(user) {
-        console.log('error', conn);
+        // console.log('error', conn);
         // return conn.connections;
         const new_user = new userModel(user);
-        try {
-            await new_user.save();
-            return new_user;
-        }
-        catch (error) {
-            if (error.code == 11000) {
-                return "users already exist";
-            } else {
-                return error;
-            }
-        };
-
+        const result = await connectToUsersDB.connect(connectionString)
+            .then(async (Data) => {
+                await new_user.save();
+                return new_user;
+            })
+            .catch((error) => {
+                if (error.code == 11000) {
+                    return "users already exist";
+                } else {
+                    return error;
+                }
+            });
+        return result; 
 
         // try {
         //     await new_user.save();
