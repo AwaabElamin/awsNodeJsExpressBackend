@@ -17,6 +17,7 @@ class MainMainCollection {
                     "Deploy all code using ci/cd via GitHub and achieved 99% of business rules.",
                     "After-sales services such as oil change and mechanical review can be added."
                   ],
+                  url:"https://main.dfnradbwueq86.amplifyapp.com/"
                 },
                 {
                   header:"Groceries Shop",
@@ -25,7 +26,8 @@ class MainMainCollection {
                     "Possibility of updating products periodically.",
                     "Enabling the customer to select and reserve products to be ready before his arrival.",
                     "Possibility of linking to the delivery program."
-                  ]
+                  ],
+                  url:"./groceries"
                 },
                 {
                   header:"Delivery Service",
@@ -35,7 +37,8 @@ class MainMainCollection {
                     "managing delivery drivers, location services, order history.", 
                     "ability to browse menus or product listings", 
                     "option to schedule deliveries."
-                  ]
+                  ],
+                  url:"./"
                 }
               ];
             return projects;
