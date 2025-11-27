@@ -1,9 +1,6 @@
 const JwtManager = require('../jwt/jwtManager');
 const bcrypt = require('bcrypt');
 const userModel = require('../models/users');
-const connectUsersDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 exports.login = async (req, res) => {
     console.log("login controller");
     const { email, password } = req.body;
@@ -11,7 +8,7 @@ exports.login = async (req, res) => {
     // await connectUsersDB.connect(connectionString)
     //     .then(async () => {
 
-    if (email, password) {
+    if (email && password) {
         try {
             const userFound = await userModel.findByEmail(email);
             console.log('user', userFound);

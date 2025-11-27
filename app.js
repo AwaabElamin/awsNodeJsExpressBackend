@@ -14,6 +14,7 @@ const mainMainRouter = require('./routes/mainMain');
 var indexRouter = require('./routes/index');
 const resumeRoute = require('./routes/resume');
 const autoRouter = require('./routes/auto');
+const healthRouter = require('./routes/health');
 
 var app = express();
 
@@ -33,6 +34,7 @@ app.use('/resume', resumeRoute);
 app.use('/projects', projectRouter);
 app.use('/mainMain', mainMainRouter);
 app.use('/auto',autoRouter)
+app.use('/health', healthRouter);
 
 // error handler
 app.use(function (err, req, res, next) {
@@ -40,6 +42,5 @@ app.use(function (err, req, res, next) {
   // res.status(err.status || 500);
   res.json({ status: 'error', data: err });
 });
-
-// module.exports = app;
-app.listen(3000);
+// Export the express app; `bin/www` starts the server and manages the process.
+module.exports = app;

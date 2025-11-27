@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
+const DB = require('../lib/db');
 const ObjectID = require('mongodb').ObjectID;
-const projectSchema = mongoose.Schema({
+
+const projectSchema = new mongoose.Schema({
     email: { type: String, unique: false },
     projectName: { type: String, unique: true },
     actors: { type: Array, unique: false },
@@ -29,17 +31,24 @@ const projectSchema = mongoose.Schema({
         viewsContent: { type: String, unique: false }
     }],
 });
-const projectModel = mongoose.model('projects', projectSchema);
+
+function getProjectModel() {
+    try {
+        return DB.getModel('projects', 'projects', projectSchema);
+    } catch (err) {
+        return DB.getModel(null, 'projects', projectSchema);
+    }
+}
 class ProjectCollection {
     static async create(project) {
-        const new_project = new projectModel(project);
+        const Model = getProjectModel();
+        const new_project = new Model(project);
         try {
             await new_project.save();
             console.log('create:- ', new_project);
             return { status: 'success', message: new_project };
         } catch (error) {
-            // console.log('', error.code);
-            if (error.code == 11000) {
+            if (error && error.code == 11000) {
                 return { status: 'success', message: "project already exist" };
             } else {
                 return { status: 'fail', message: error };
@@ -48,7 +57,7 @@ class ProjectCollection {
     }
     static async getAllProjects(email) {
         try {
-            const projects = await projectModel.find({ email: email });
+            const projects = await getProjectModel().find({ email: email });
             return { status: 'success', message: projects };
         } catch (error) {
             return { status: 'fail', message: error };
@@ -56,7 +65,7 @@ class ProjectCollection {
     }
     static async getAllUserStories(email, PID) {
         try {
-            const project = await projectModel.findOne({ email: email, _id: PID });
+            const project = await getProjectModel().findOne({ email: email, _id: PID });
             return { status: 'success', message: project.userStories };
         } catch (error) {
             return { status: 'fail', message: error };
@@ -86,7 +95,7 @@ class ProjectCollection {
             }
         }
         try {
-            const us = await projectModel.findOneAndUpdate(filter, update);
+            const us = await getProjectModel().findOneAndUpdate(filter, update);
             return { status: 'success', message: us };
         } catch (error) {
             return { status: 'fail', message: error };
@@ -94,7 +103,7 @@ class ProjectCollection {
     }
     static async getAllActors(email, PID) {
         try {
-            const project = await projectModel.findOne({ email: email, _id: PID });
+            const project = await getProjectModel().findOne({ email: email, _id: PID });
             // console.log("Actors", project);
             return { status: 'success', message: project.actors };
         } catch (error) {
@@ -105,7 +114,7 @@ class ProjectCollection {
         const filter = { email: email };
         const update = { $push: { actors: actor } };
         try {
-            const act = await projectModel.findOneAndUpdate(filter, update);
+            const act = await getProjectModel().findOneAndUpdate(filter, update);
             return { status: 'success', message: act };
         } catch (error) {
             return { status: 'fail', message: error };
@@ -132,7 +141,7 @@ class ProjectCollection {
             }
         }
         try {
-            const act = await projectModel.findOneAndUpdate(filter, update);
+            const act = await getProjectModel().findOneAndUpdate(filter, update);
             // uc = await act.userStories.find((n) => n._id = useCase.id)
             // console.log("act", act);
             return { status: 'success', message: act };
@@ -143,7 +152,7 @@ class ProjectCollection {
     static async selectUseCase(email, projectId, id) {
         try {
             let useCase = [];
-            const project = await projectModel.findOne({ email: email, _id: projectId });
+            const project = await getProjectModel().findOne({ email: email, _id: projectId });
             project.userStories.forEach(element => {
                 element._id == id ? useCase = element : null;
             });
@@ -171,7 +180,7 @@ class ProjectCollection {
         }
         // console.log("Update date", update);
         try {
-            const ui = await projectModel.findOneAndUpdate(filter, update);
+            const ui = await getProjectModel().findOneAndUpdate(filter, update);
             ui.userStories.forEach(element => {
                 element._id == userStoryId ? userInterface = element : null;
             });

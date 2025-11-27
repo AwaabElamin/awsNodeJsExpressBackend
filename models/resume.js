@@ -1,7 +1,6 @@
-const connectResumeDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
-const resumeSchema = {
+const mongoose = require('mongoose');
+const DB = require('../lib/db');
+const resumeSchema = new mongoose.Schema({
     summary: { type: String, unique: true },
     Education: {
         master: { type: String },
@@ -15,15 +14,15 @@ const resumeSchema = {
         Infosys: { type: String },
         AwaaabLLC: { type: String }
     }
-};
-const educationSchema = {
+});
+const educationSchema = new mongoose.Schema({
     email: { type: String },
     universityName: { type: String },
     degreeType: { type: String },
     majorName: { type: String },
     yearOfGraduate: { type: String }
-}
-const experienceSchema = {
+});
+const experienceSchema = new mongoose.Schema({
     email: { type: String },
     companyName: { type: String },
     startYear: { type: String },
@@ -33,65 +32,60 @@ const experienceSchema = {
     summary: { type: String },
     link: { type: String },
     TechnologiesUsed: { type: String }
-};
-const summarySchema = {
+});
+const summarySchema = new mongoose.Schema({
     email: {type:String},
     summary:{type:String}
-}
+});
 //64c1be86558cfea813977fd2
-const resumeModel = connectResumeDB.model('resume', resumeSchema);
-const educationModel = connectResumeDB.model('educations', educationSchema);
-const experienceModel = connectResumeDB.model('experiences', experienceSchema);
-const summaryModel = connectResumeDB.model('summary', summarySchema);
+function getResumeModel() {
+    try {
+        return DB.getModel('resume', 'resume', resumeSchema);
+    } catch (err) {
+        return DB.getModel(null, 'resume', resumeSchema);
+    }
+}
+function getEducationModel() {
+    try { return DB.getModel('resume', 'educations', educationSchema); } catch (e) { return DB.getModel(null, 'educations', educationSchema); }
+}
+function getExperienceModel() {
+    try { return DB.getModel('resume', 'experiences', experienceSchema); } catch (e) { return DB.getModel(null, 'experiences', experienceSchema); }
+}
+function getSummaryModel() {
+    try { return DB.getModel('resume', 'summary', summarySchema); } catch (e) { return DB.getModel(null, 'summary', summarySchema); }
+}
 class ResumeCollection {
     static async findAll() {
         try {
-            const resume = await resumeModel.findOne({});
+            const resume = await getResumeModel().findOne({});
             return resume;
         } catch (error) {
             return error;
         }
     }
     static async getEducation() {
-        const edu = await connectResumeDB.connect(connectionString)
-        .then(async()=> {
-            console.log('connect to education');
-            const educations = await educationModel.find({});
-            // await connectResumeDB.disconnect();
+        try {
+            const educations = await getEducationModel().find({});
             return educations;
-        })
-        .catch( (error)=>{
+        } catch (error) {
             return error;
-        });
-        return edu;
+        }
     }
     static async getExperience() {
-        const expe = await connectResumeDB.connect(connectionString)
-        .then( async()=>{
-            console.log('connect to experience');
-            const experiences = await experienceModel.find({});
-            await connectResumeDB.disconnect();
+        try {
+            const experiences = await getExperienceModel().find({});
             return experiences;
-        })
-        .catch((error)=>{
-            console.log('error in getting experience', error);
+        } catch (error) {
             return error;
-        });
-        return expe;
+        }
     }
     static async getSummary() {
-        const summary = await connectResumeDB.connect(connectionString)
-        .then(async()=> {
-            console.log('connect to summary');
-            const summaries = await summaryModel.find({});
-            // await connectResumeDB.disconnect();
+        try {
+            const summaries = await getSummaryModel().find({});
             return summaries;
-        })
-        .catch ((error) =>{
-            console.log('error in getting summary', error);
+        } catch (error) {
             return error;
-        });
-        return summary;
+        }
     }
 }
 module.exports = ResumeCollection;

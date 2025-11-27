@@ -4,30 +4,78 @@
  * Module dependencies.
  */
 
+require('dotenv').config();
+const DB = require('../lib/db');
 var app = require('../app');
 var debug = require('debug')('awsnodejsexpressbackend:server');
 var http = require('http');
 
+async function main() {
+  try {
+    const defaultUri = process.env.MONGODB_URI || process.env.MONGODB_URI_USERS;
+    if (defaultUri) {
+      await DB.connect(defaultUri);
+    }
+
+    // Optional named DBs
+    const usersUri = process.env.MONGODB_URI_USERS;
+    const deliveryUri = process.env.MONGODB_URI_DELIVERY;
+    const resumeUri = process.env.MONGODB_URI_RESUME;
+    const carshopUri = process.env.MONGODB_URI_CARSHOP;
+
+    if (usersUri && usersUri !== defaultUri) await DB.createConnection('users', usersUri);
+    if (deliveryUri) await DB.createConnection('delivery', deliveryUri);
+    if (resumeUri) await DB.createConnection('resume', resumeUri);
+    if (carshopUri) await DB.createConnection('carshop', carshopUri);
+
+  } catch (err) {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+  }
+  // proceed to start server
+
+}
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT|| '8080');
-// app.set('port', port);
+var port = normalizePort(process.env.PORT || process.env.PORT || '8080');
 
 /**
- * Create HTTP server.
+ * Create HTTP server and start listening.
  */
 
-var server = http.createServer(app);
+main().then(() => {
+  var server = http.createServer(app);
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', () => onListening(server));
+}).catch(err => {
+  console.error('Failed to start server', err);
+  process.exit(1);
+});
 
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+// graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down...');
+  try {
+    const DB = require('../lib/db');
+    await DB.disconnectAll();
+  } catch (err) {
+    console.error('Error during shutdown', err);
+  }
+  process.exit(0);
+});
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down...');
+  try {
+    const DB = require('../lib/db');
+    await DB.disconnectAll();
+  } catch (err) {
+    console.error('Error during shutdown', err);
+  }
+  process.exit(0);
+});
 
 /**
  * Normalize a port into a number, string, or false.
@@ -81,7 +129,7 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 
-function onListening() {
+function onListening(server) {
   var addr = server.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr

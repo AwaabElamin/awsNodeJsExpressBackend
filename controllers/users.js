@@ -1,8 +1,6 @@
 const bcrypt = require('bcrypt');
 const usersModel = require('../models/users');
-// const connectToUsersDB = require('mongoose');
-// const connectionString =
-//     'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
+// DB connection is centralized via `lib/db.js`; do not add per-method connects here.
 exports.create = async (req, res) => {
     const user = {
         email: req.body.user.email,
@@ -19,24 +17,7 @@ exports.create = async (req, res) => {
         console.log("Route users create catch connected", error);
         res.send({ status: "error", data: error })
     }
-    // await connectToUsersDB.connect(connectionString)
-    // .then(async()=>{
-    //     console.log("req.body.user", req.body.user);
-    //     const user = {
-    //         email: req.body.user.email,
-    //         password: bcrypt.hashSync(req.body.user.password, 8),
-    //         phone: req.body.user.phone,
-    //         firstname: req.body.user.firstname,
-    //         lastname: req.body.user.lastname
-    //     }
-    //     const userAdded = await usersModel.create(user);
-    //     console.log('add user', userAdded);
-    //     res.send({status:"success",data:userAdded});
-    // })
-    // .catch(error =>{
-    //     console.log("Route users create catch connected",error);
-    //     res.send({status:"error",data:error})
-    // });
+    // (legacy) per-method connection removed; models assume an active mongoose connection.
 }
 exports.getAll = async (req, res) => {
     const users = await usersModel.findAll();
