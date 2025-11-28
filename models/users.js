@@ -17,7 +17,6 @@ function getUserModel() {
         return DB.getModel(null, 'users', userSchema);
     }
 }
-// const conn = connectToUsersDB.createConnection(connectionString);
 class UserCollection {
     static async findAll() {
         const users = await getUserModel().find({});

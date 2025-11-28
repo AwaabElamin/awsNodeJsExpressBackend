@@ -5,9 +5,6 @@ exports.login = async (req, res) => {
     console.log("login controller");
     const { email, password } = req.body;
     console.log(`username: ${email}, password: ${password}`);
-    // await connectUsersDB.connect(connectionString)
-    //     .then(async () => {
-
     if (email && password) {
         try {
             const userFound = await userModel.findByEmail(email);
