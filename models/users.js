@@ -7,7 +7,12 @@ const userSchema = new mongoose.Schema({
     password: { type: String },
     phone: { type: String },
     firstname: { type: String },
-    lastname: { type: String }
+    lastname: { type: String },
+    userRole: { type: String },
+    status: { type: Number },
+    appName: { type: String },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
 });
 
 function getUserModel() {
@@ -20,17 +25,16 @@ function getUserModel() {
 class UserCollection {
     static async findAll() {
         const users = await getUserModel().find({});
-        console.log('findAll:- ', users);
+        // console.log('findAll:- ', users);
         return users;
     }
     static async findById(id) {
         const user = await getUserModel().findById(id);
-        console.log('findById:- ', user);
+        // console.log('findById:- ', user);
         return user;
     }
     static async create(user) {
-        // console.log('error', conn);
-        // return conn.connections;
+        console.log('create user model user:', user);
         const Model = getUserModel();
         const new_user = new Model(user);
         try {
@@ -42,19 +46,6 @@ class UserCollection {
             }
             return error;
         }
-
-        // try {
-        //     await new_user.save();
-        //     console.log('create:- ', new_user);
-        //     return { success: true, data: new_user };
-        // } catch (error) {
-        //     console.log('Awaab.code: ', error.code);
-        //     if (error.code == 11000) {
-        //         return { success: false, message: "users already exist" };
-        //     } else {
-        //         return { success: false, message: error };
-        //     }
-        // }
     }
     static async findAndUpdate(id, user) {
         console.log('id: ', id);
@@ -62,7 +53,7 @@ class UserCollection {
             const foundedUser = await getUserModel().findOne({ email: id });
             if (foundedUser) {
                 const updatedUser = await getUserModel().findByIdAndUpdate(foundedUser._id, user);
-                console.log('findAndUpdate:- ', updatedUser);
+                // console.log('findAndUpdate:- ', updatedUser);
                 return { status: 'success', data: updatedUser };
             }
             return { status: 'fail', message: 'user not founded by email: ' + id }
@@ -74,9 +65,9 @@ class UserCollection {
     }
     static async findAndDelete(id) {
         try {
-            const deltedUser = await getUserModel().findByIdAndDelete(id);
-            console.log('findAndDelete:- ', deltedUser);
-            return { success: true, data: deltedUser };
+            const deletedUser = await getUserModel().findByIdAndDelete(id);
+            // console.log('findAndDelete:- ', deletedUser);
+            return { success: true, data: deletedUser };
         } catch (error) {
             return { success: false, message: error };
         }
