@@ -5,7 +5,6 @@ var path = require('path');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
-const mainMainRouter = require('./routes/mainMain');
 const resumeRoute = require('./routes/resume');
 const autoRouter = require('./routes/auto');
 const healthRouter = require('./routes/health');
@@ -25,7 +24,6 @@ app.use(cors());
 app.use('/', authorizeRouter);
 app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
-app.use('/mainMain', mainMainRouter);
 app.use('/auto',autoRouter)
 app.use('/health', healthRouter);
 
