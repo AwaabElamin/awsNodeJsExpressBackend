@@ -4,7 +4,7 @@ var cookieParser = require('cookie-parser');
 var path = require('path');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
-const usersRouter = require('./routes/users');
+const resumeRoute = require('./routes/resume');
 const healthRouter = require('./routes/health');
 
 var app = express();
@@ -20,7 +20,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 app.use('/', authorizeRouter);
-app.use('/users', usersRouter);
+app.use('/resume', resumeRoute);
 app.use('/health', healthRouter);
 
 // error handler
