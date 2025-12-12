@@ -2,10 +2,15 @@ var express = require('express');
 const cors = require('cors');
 var cookieParser = require('cookie-parser');
 var path = require('path');
+const fs = require('fs');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
-const projectRouter = require('./routes/project');
+let projectRouter;
+const projectRoutePath = path.join(__dirname, 'routes', 'project.js');
+if (fs.existsSync(projectRoutePath)) {
+  projectRouter = require('./routes/project');
+}
 const mainMainRouter = require('./routes/mainMain');
 const resumeRoute = require('./routes/resume');
 const autoRouter = require('./routes/auto');
@@ -26,7 +31,7 @@ app.use(cors());
 app.use('/', authorizeRouter);
 app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
-app.use('/projects', projectRouter);
+if (projectRouter) app.use('/projects', projectRouter);
 app.use('/mainMain', mainMainRouter);
 app.use('/auto',autoRouter)
 app.use('/health', healthRouter);
