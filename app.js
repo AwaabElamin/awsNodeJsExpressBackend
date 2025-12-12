@@ -4,16 +4,12 @@ var cookieParser = require('cookie-parser');
 var path = require('path');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
-const usersRouter = require('./routes/users');
 const fs = require('fs');
 let projectRouter;
 const projectRoutePath = path.join(__dirname, 'routes', 'project.js');
 if (fs.existsSync(projectRoutePath)) {
   projectRouter = require('./routes/project');
 }
-const mainMainRouter = require('./routes/mainMain');
-const resumeRoute = require('./routes/resume');
-const autoRouter = require('./routes/auto');
 const healthRouter = require('./routes/health');
 
 var app = express();
@@ -29,11 +25,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 app.use('/', authorizeRouter);
-app.use('/users', usersRouter);
-app.use('/resume', resumeRoute);
 if (projectRouter) app.use('/projects', projectRouter);
-app.use('/mainMain', mainMainRouter);
-app.use('/auto',autoRouter)
 app.use('/health', healthRouter);
 
 // error handler
