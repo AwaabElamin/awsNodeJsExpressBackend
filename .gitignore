@@ -1,8 +1,4 @@
-node_modules/
-#.env
-npm-debug.log
-dist/
-
+# See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # Compiled output
 /tmp

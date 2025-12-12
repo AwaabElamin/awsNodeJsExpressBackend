@@ -1,59 +1,67 @@
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
-const DB = require('../lib/db');
+const connectToUsersDB = require('mongoose');
+const connectionString =
+    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 
-const userSchema = new mongoose.Schema({
+const userSchema = connectToUsersDB.Schema({
     email: { type: String, unique: true },
     password: { type: String },
     phone: { type: String },
     firstname: { type: String },
-    lastname: { type: String },
-    userRole: { type: String },
-    status: { type: Number },
-    appName: { type: String },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
-});
-
-function getUserModel() {
-    try {
-        return DB.getModel('users', 'users', userSchema);
-    } catch (err) {
-        return DB.getModel(null, 'users', userSchema);
-    }
-}
+    lastname: { type: String }
+})
+const userModel = connectToUsersDB.model('users', userSchema);
+// const conn = connectToUsersDB.createConnection(connectionString);
 class UserCollection {
     static async findAll() {
-        const users = await getUserModel().find({});
-        // console.log('findAll:- ', users);
+        const users = await userModel.find({});
+        console.log('findAll:- ', users);
         return users;
     }
     static async findById(id) {
-        const user = await getUserModel().findById(id);
-        // console.log('findById:- ', user);
+        const user = await userModel.findById(id);
+        console.log('findById:- ', user);
         return user;
     }
     static async create(user) {
-        console.log('create user model user:', user);
-        const Model = getUserModel();
-        const new_user = new Model(user);
-        try {
-            await new_user.save();
-            return new_user;
-        } catch (error) {
-            if (error && error.code === 11000) {
-                return 'users already exist';
-            }
-            return error;
-        }
+        // console.log('error', conn);
+        // return conn.connections;
+        const new_user = new userModel(user);
+        const result = await connectToUsersDB.connect(connectionString)
+            .then(async (Data) => {
+                await new_user.save();
+                return new_user;
+            })
+            .catch((error) => {
+                if (error.code == 11000) {
+                    return "users already exist";
+                } else {
+                    return error;
+                }
+            });
+        return result; 
+
+        // try {
+        //     await new_user.save();
+        //     console.log('create:- ', new_user);
+        //     return { success: true, data: new_user };
+        // } catch (error) {
+        //     console.log('Awaab.code: ', error.code);
+        //     if (error.code == 11000) {
+        //         return { success: false, message: "users already exist" };
+        //     } else {
+        //         return { success: false, message: error };
+        //     }
+        // }
     }
     static async findAndUpdate(id, user) {
         console.log('id: ', id);
         try {
-            const foundedUser = await getUserModel().findOne({ email: id });
+            const foundedUser = await userModel.findOne({ email: id });
             if (foundedUser) {
-                const updatedUser = await getUserModel().findByIdAndUpdate(foundedUser._id, user);
-                // console.log('findAndUpdate:- ', updatedUser);
+                const updatedUser = await userModel.findByIdAndUpdate(foundedUser._id, user);
+                console.log('findAndUpdate:- ', updatedUser);
                 return { status: 'success', data: updatedUser };
             }
             return { status: 'fail', message: 'user not founded by email: ' + id }
@@ -65,9 +73,9 @@ class UserCollection {
     }
     static async findAndDelete(id) {
         try {
-            const deletedUser = await getUserModel().findByIdAndDelete(id);
-            // console.log('findAndDelete:- ', deletedUser);
-            return { success: true, data: deletedUser };
+            const deltedUser = await userModel.findByIdAndDelete(id);
+            console.log('findAndDelete:- ', deltedUser);
+            return { success: true, data: deltedUser };
         } catch (error) {
             return { success: false, message: error };
         }
@@ -75,12 +83,18 @@ class UserCollection {
 
     //for login purpose
     static async findByEmail(email) {
-        try {
-            const foundedUser = await getUserModel().findOne({ email: email });
-            return foundedUser;
-        } catch (error) {
-            return error;
-        }
+        const result = await connectToUsersDB.connect(connectionString)
+            .then(async (Data) => {
+                // console.log('Data', Data);
+                const foundedUser = await userModel.findOne({ email: email });
+                // console.log('find user by email:- ', foundedUser);
+                await connectToUsersDB.disconnect();
+                return foundedUser;
+            })
+            .catch(error => {
+                return error;
+            })
+        return result;
     }
 }
 module.exports = UserCollection;

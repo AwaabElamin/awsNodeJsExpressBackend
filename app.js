@@ -1,20 +1,19 @@
+var createError = require('http-errors');
 var express = require('express');
 const cors = require('cors');
 var cookieParser = require('cookie-parser');
+const MongoClient = require('mongodb').MongoClient;
+const mongoose = require('mongoose');
+const jwtManager = require('./jwt/jwtManager');
 var path = require('path');
-const fs = require('fs');
 var logger = require('morgan');
 const authorizeRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
-let projectRouter;
-const projectRoutePath = path.join(__dirname, 'routes', 'project.js');
-if (fs.existsSync(projectRoutePath)) {
-  projectRouter = require('./routes/project');
-}
+const projectRouter = require('./routes/project');
 const mainMainRouter = require('./routes/mainMain');
+var indexRouter = require('./routes/index');
 const resumeRoute = require('./routes/resume');
 const autoRouter = require('./routes/auto');
-const healthRouter = require('./routes/health');
 
 var app = express();
 
@@ -31,10 +30,9 @@ app.use(cors());
 app.use('/', authorizeRouter);
 app.use('/users', usersRouter);
 app.use('/resume', resumeRoute);
-if (projectRouter) app.use('/projects', projectRouter);
+app.use('/projects', projectRouter);
 app.use('/mainMain', mainMainRouter);
 app.use('/auto',autoRouter)
-app.use('/health', healthRouter);
 
 // error handler
 app.use(function (err, req, res, next) {
@@ -42,5 +40,6 @@ app.use(function (err, req, res, next) {
   // res.status(err.status || 500);
   res.json({ status: 'error', data: err });
 });
-// Export the express app; `bin/www` starts the server and manages the process.
-module.exports = app;
+
+// module.exports = app;
+app.listen(3000);

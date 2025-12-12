@@ -1,14 +1,14 @@
-const DB = require('./lib/db');
-
+const mongoose = require('mongoose');
 class ConnectionDB {
     static async connectToDeliveryBD() {
-        const uri = process.env.MONGODB_URI_DELIVERY;
-        if (!uri) {
-            console.warn('MONGODB_URI_DELIVERY not set; skipping delivery DB connect');
-            return;
+        const connectionString =
+            'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority'
+        try {
+            mongoose.connect(connectionString);
+            console.log("Awaab connected");
+        } catch (error) {
+            console.log('Error: ', error);
         }
-        return DB.connect(uri);
     }
 }
-
 module.exports = ConnectionDB;

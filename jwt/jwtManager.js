@@ -1,25 +1,21 @@
 const jwt = require('jsonwebtoken');
+const secret = 'top-secret';
 
-const SECRET = process.env.JWT_SECRET;
-const EXPIRES_IN = process.env.JWT_EXPIRES_IN ? parseInt(process.env.JWT_EXPIRES_IN, 10) : 4 * 60 * 60;
-
-if (!SECRET) {
-    console.warn('JWT_SECRET is not set. Generate and set JWT_SECRET in environment for production.');
-}
-
-class JwtManager {
+class jwtManager {
     generate(data) {
-        const token = jwt.sign(data, SECRET, { expiresIn: EXPIRES_IN });
+        const token = jwt.sign(data,secret,{ expiresIn: 4 * 60 * 60 });
         return token;
     }
     verify(token){
+        // console.log('token from jwt', token);
         try {
-            const data = jwt.verify(token, SECRET);
+            const data = jwt.verify(token,secret);
+            // console.log('data from jwt', data);
             return data;
         } catch (error) {
-            return null;
+            // console.log('jwt error', error);
         }
     }
 }
 
-module.exports = JwtManager;
+module.exports = jwtManager;
