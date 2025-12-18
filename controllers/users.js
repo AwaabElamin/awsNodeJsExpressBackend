@@ -39,6 +39,10 @@ exports.create = async (req, res) => {
     // });
 }
 exports.getAll = async (req, res) => {
+    if (!req.user) {
+        console.log('Unauthorized access to getAll - aborting DB operation');
+        return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
+    }
     const users = await usersModel.findAll();
     res.send(users);
 }
@@ -58,6 +62,11 @@ exports.delete = async (req, res) => {
     res.send(deletedUser);
 }
 exports.getUserByEmail = async(req,res) =>{
+    if (!req.user) {
+        console.log('Unauthorized access to getUserByEmail - aborting DB operation');
+        return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
+    }
+
     const email = req.body.email;
     console.log('email', email);
     if (email) {

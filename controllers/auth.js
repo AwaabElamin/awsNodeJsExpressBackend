@@ -15,7 +15,9 @@ exports.login = async (req, res) => {
         try {
             const userFound = await userModel.findByEmail(email);
             console.log('user', userFound);
-            if (userFound) {                
+            if (userFound) {  
+                console.log('User found, checking password');
+                console.log('user data:', userFound);              
                 if (bcrypt.compareSync(password, userFound.password)) {
                     const data = { email: email, password: password };
                     const jwt = new JwtManager();
@@ -41,18 +43,31 @@ exports.login = async (req, res) => {
 
 }
 exports.authorize = (req, res, next) => {
-    if (req.headers.authorization) {
-        const token = req.headers.authorization.split(' ')[1];        
-        // console.log('token', token);
-        const jwt = new JwtManager();
-        const data = jwt.verify(token)
-        // console.log('Data', data);
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        console.log('No Authorization header');
+        return res.status(401).json({ status: 'fail', message: 'no Authorization' });
+    }
+
+    console.log('Authorization Header:', authHeader.split(' '));
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        return res.status(401).json({ status: 'fail', message: 'Invalid Authorization format' });
+    }
+
+    const token = parts[1];
+    const jwt = new JwtManager();
+    try {
+        const data = jwt.verify(token);
         if (!data) {
-            res.send({ status: 'fail', message: 'Unauthenticated' });
+            return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
         }
-        next();
-    } else {
-        res.send({ status: 'fail', message: 'no Authorization' });
+        // attach verified data to request for downstream handlers
+        req.user = data;
+        return next();
+    } catch (err) {
+        console.log('Token verification error', err);
+        return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
     }
 
 }

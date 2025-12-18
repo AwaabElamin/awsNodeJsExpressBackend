@@ -1,6 +1,4 @@
-const connectResumeDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
+const DB = require('../lib/db');
 const resumeSchema = {
     summary: { type: String, unique: true },
     Education: {
@@ -38,11 +36,11 @@ const summarySchema = {
     email: {type:String},
     summary:{type:String}
 }
-//64c1be86558cfea813977fd2
-const resumeModel = connectResumeDB.model('resume', resumeSchema);
-const educationModel = connectResumeDB.model('educations', educationSchema);
-const experienceModel = connectResumeDB.model('experiences', experienceSchema);
-const summaryModel = connectResumeDB.model('summary', summarySchema);
+// Use named connection 'resume' created in app startup
+const resumeModel = DB.getModel('resume', 'resume', resumeSchema);
+const educationModel = DB.getModel('resume', 'educations', educationSchema);
+const experienceModel = DB.getModel('resume', 'experiences', experienceSchema);
+const summaryModel = DB.getModel('resume', 'summary', summarySchema);
 class ResumeCollection {
     static async findAll() {
         try {
@@ -53,45 +51,30 @@ class ResumeCollection {
         }
     }
     static async getEducation() {
-        const edu = await connectResumeDB.connect(connectionString)
-        .then(async()=> {
-            console.log('connect to education');
+        try {
             const educations = await educationModel.find({});
-            // await connectResumeDB.disconnect();
             return educations;
-        })
-        .catch( (error)=>{
+        } catch (error) {
             return error;
-        });
-        return edu;
+        }
     }
     static async getExperience() {
-        const expe = await connectResumeDB.connect(connectionString)
-        .then( async()=>{
-            console.log('connect to experience');
+        try {
             const experiences = await experienceModel.find({});
-            await connectResumeDB.disconnect();
             return experiences;
-        })
-        .catch((error)=>{
+        } catch (error) {
             console.log('error in getting experience', error);
             return error;
-        });
-        return expe;
+        }
     }
     static async getSummary() {
-        const summary = await connectResumeDB.connect(connectionString)
-        .then(async()=> {
-            console.log('connect to summary');
+        try {
             const summaries = await summaryModel.find({});
-            // await connectResumeDB.disconnect();
             return summaries;
-        })
-        .catch ((error) =>{
+        } catch (error) {
             console.log('error in getting summary', error);
             return error;
-        });
-        return summary;
+        }
     }
 }
 module.exports = ResumeCollection;

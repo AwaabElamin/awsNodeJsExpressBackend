@@ -1,22 +1,12 @@
 const mainMainModel = require("../models/mainMain");
-const connectProjectsDB = require('mongoose');
-const connectionString =
-  'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority';
-const mongoose = require('mongoose');
-const conn = require('../connecting');
-exports.getProjects = async (req, res) => {
-  await connectProjectsDB.connect(connectionString)
-    .then(async () => {
-      const projects = await mainMainModel.getProjects();
-      res.send({status:"success",data:projects});
-    })
-    .catch(error => {
-      res.send({ status: "error", data: error });
-    });
-    await connectProjectsDB.disconnect()
-    .then(()=>console.log("connectProjectsDB disconnected"))
-    .catch((error)=> console.log("disconnection of projectDB error", error));
 
+exports.getProjects = async (req, res) => {
+  try {
+    const projects = await mainMainModel.getProjects();
+    res.send({status:"success",data:projects});
+  } catch (error) {
+    res.send({ status: "error", data: error });
+  }
 }
 exports.create = async (req, res) => {
   console.log("req.body", req.body);
@@ -49,7 +39,6 @@ exports.create = async (req, res) => {
       ]
     }
   ];
-  const projectAdded = await projectModel.create(projects);
-  console.log('add project', projectAdded);
-  res.send({ status: 'success', message: projectAdded });
+  // If you plan to persist projects later, implement projectModel and use it here.
+  res.send({ status: 'success', message: projects });
 }

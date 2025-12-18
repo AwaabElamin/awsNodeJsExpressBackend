@@ -25,35 +25,16 @@ class UserCollection {
         return user;
     }
     static async create(user) {
-        // console.log('error', conn);
-        // return conn.connections;
         const new_user = new userModel(user);
-        const result = await connectToUsersDB.connect(connectionString)
-            .then(async (Data) => {
-                await new_user.save();
-                return new_user;
-            })
-            .catch((error) => {
-                if (error.code == 11000) {
-                    return "users already exist";
-                } else {
-                    return error;
-                }
-            });
-        return result; 
-
-        // try {
-        //     await new_user.save();
-        //     console.log('create:- ', new_user);
-        //     return { success: true, data: new_user };
-        // } catch (error) {
-        //     console.log('Awaab.code: ', error.code);
-        //     if (error.code == 11000) {
-        //         return { success: false, message: "users already exist" };
-        //     } else {
-        //         return { success: false, message: error };
-        //     }
-        // }
+        try {
+            await new_user.save();
+            return new_user;
+        } catch (error) {
+            if (error && error.code == 11000) {
+                return "users already exist";
+            }
+            throw error;
+        }
     }
     static async findAndUpdate(id, user) {
         console.log('id: ', id);
@@ -83,18 +64,12 @@ class UserCollection {
 
     //for login purpose
     static async findByEmail(email) {
-        const result = await connectToUsersDB.connect(connectionString)
-            .then(async (Data) => {
-                // console.log('Data', Data);
-                const foundedUser = await userModel.findOne({ email: email });
-                // console.log('find user by email:- ', foundedUser);
-                await connectToUsersDB.disconnect();
-                return foundedUser;
-            })
-            .catch(error => {
-                return error;
-            })
-        return result;
+        try {
+            const foundedUser = await userModel.findOne({ email: email });
+            return foundedUser;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 module.exports = UserCollection;
