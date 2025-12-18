@@ -61,13 +61,36 @@ exports.getAll = async (req, res) => {
     res.send(users);
 }
 exports.update = async (req, res) => {
-    const user = {
-        password: bcrypt.hashSync(req.body.password, 8),
-        email: req.body.email,
-        phone: req.body.phone
+    // Validate request
+    if (!req.body || !req.body.email) {
+        return res.status(400).json({ status: 'fail', message: 'Email is required' });
     }
-    const updatedUser = await usersModel.findAndUpdate(req.body.email, user);
-    res.send(updatedUser);
+
+    const { email, password, phone, firstname, lastname } = req.body;
+
+    // Require at least one field to update
+    if (!password && !phone && !firstname && !lastname) {
+        return res.status(400).json({ status: 'fail', message: 'At least one field is required to update' });
+    }
+
+    const user = {};
+    try {
+        if (password) user.password = bcrypt.hashSync(password, 8);
+        if (phone) user.phone = phone;
+        if (firstname) user.firstname = firstname;
+        if (lastname) user.lastname = lastname;
+    } catch (error) {
+        console.log('Error preparing update payload', error);
+        return res.status(400).json({ status: 'error', data: error });
+    }
+
+    try {
+        const updatedUser = await usersModel.findAndUpdate(email, user);
+        return res.json(updatedUser);
+    } catch (error) {
+        console.log('Route users update error', error);
+        return res.status(500).json({ status: 'error', data: error });
+    }
 }
 exports.delete = async (req, res) => {
     const id = req.query.id;
@@ -76,35 +99,42 @@ exports.delete = async (req, res) => {
     res.send(deletedUser);
 }
 exports.getUserByEmail = async(req,res) =>{
+    // Authentication guard
     if (!req.user) {
         console.log('Unauthorized access to getUserByEmail - aborting DB operation');
         return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
     }
 
     const email = req.body.email;
+    if (!email) {
+        return res.status(400).json({ status: 'fail', message: 'Please provide the email' });
+    }
+
+    // Only allow the token owner to fetch their own profile
+    if (!req.user.email || req.user.email !== email) {
+        console.log('Authenticated user trying to access another user profile:', { requester: req.user.email, target: email });
+        return res.status(403).json({ status: 'fail', message: 'Forbidden' });
+    }
+
     console.log('email', email);
-    if (email) {
-        try {
-            const userFound = await usersModel.findByEmail(email);
-            if (userFound) {
-                res.send({
-                    status:'success',
-                    data:{
-                        email:email,
-                        phone:userFound.phone,
-                        firstname:userFound.firstname,
-                        lastname:userFound.lastname,
-                        password:""
-                    }
-                })
-            } else {
-                res.send({ status: 'fail', message: 'The user is not found' });
-            }
-        } catch (error) {
-            console.log("error get user by email", error);
-            res.send({ status: "error", data: error })
+    try {
+        const userFound = await usersModel.findByEmail(email);
+        if (userFound) {
+            return res.json({
+                status:'success',
+                data:{
+                    email:email,
+                    phone:userFound.phone,
+                    firstname:userFound.firstname,
+                    lastname:userFound.lastname,
+                    password:""
+                }
+            });
+        } else {
+            return res.status(404).json({ status: 'fail', message: 'The user is not found' });
         }
-    } else {
-        res.send({ status: 'fail', data: 'Please provide the email' });
+    } catch (error) {
+        console.log("error get user by email", error);
+        return res.status(500).json({ status: "error", data: error })
     }
 }
