@@ -4,20 +4,34 @@ const usersModel = require('../models/users');
 // const connectionString =
 //     'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 exports.create = async (req, res) => {
-    const user = {
-        email: req.body.user.email,
-        password: bcrypt.hashSync(req.body.user.password, 8),
-        phone: req.body.user.phone,
-        firstname: req.body.user.firstname,
-        lastname: req.body.user.lastname
+    // Input validation
+    if (!req.body || !req.body.user) {
+        return res.status(400).json({ status: 'fail', message: 'User payload is required' });
     }
+
+    const { email, password, phone, firstname, lastname } = req.body.user;
+    if (!email || !password) {
+        return res.status(400).json({ status: 'fail', message: 'Email and password are required' });
+    }
+
+    const user = {
+        email,
+        password: bcrypt.hashSync(password, 8),
+        phone,
+        firstname,
+        lastname
+    };
+
     try {
         const userAdded = await usersModel.create(user);
         console.log('add user', userAdded);
-        res.send({ status: "success", data: userAdded });
+        return res.status(201).json({ status: 'success', data: userAdded });
     } catch (error) {
-        console.log("Route users create catch connected", error);
-        res.send({ status: "error", data: error })
+        console.log('Route users create catch connected', error);
+        if (error && error.code === 11000) {
+            return res.status(409).json({ status: 'fail', message: 'User already exist' });
+        }
+        return res.status(500).json({ status: 'error', data: error });
     }
     // await connectToUsersDB.connect(connectionString)
     // .then(async()=>{
