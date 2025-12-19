@@ -1,5 +1,29 @@
+
 // controllers/education.js
+const mongoose = require('mongoose');
 const Education = require('../models/education');
+
+// Delete education by ID for authenticated user
+exports.deleteEducation = async (req, res) => {
+    console.log('Education not found or not owned by user', req.params, req.user.email);
+    if (!req.user || !req.user.email) {
+        return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
+    }
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ status: 'fail', message: 'Invalid or missing education ID' });
+    }
+    try {
+        const education = await Education.findOneAndDelete({ _id: id, email: req.user.email });
+        if (!education) {
+            return res.status(404).json({ status: 'fail', message: 'Education not found or not owned by user' });
+        }
+        return res.status(200).json({ status: 'success', message: 'Education deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting education:', error);
+        return res.status(500).json({ status: 'error', data: 'Internal server error' });
+    }
+};
 
 exports.createEducation = async (req, res) => {
     if (!req.user || !req.user.email) {
@@ -39,7 +63,6 @@ exports.getEducationsByUser = async (req, res) => {
 };
 
 // Update education by ID for authenticated user
-const mongoose = require('mongoose');
 exports.updateEducation = async (req, res) => {
     if (!req.user || !req.user.email) {
         return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });

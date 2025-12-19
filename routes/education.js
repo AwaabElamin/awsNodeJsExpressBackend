@@ -10,5 +10,7 @@ router.post('/', authorizationController.authorize, educationController.createEd
 router.get('/', authorizationController.authorize, educationController.getEducationsByUser);
 // Update education by ID for authenticated user
 router.put('/:id', authorizationController.authorize, educationController.updateEducation);
+// Delete education by ID for authenticated user
+router.delete('/:id', authorizationController.authorize, educationController.deleteEducation);
 
 module.exports = router;
