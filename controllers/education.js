@@ -2,7 +2,7 @@
 const Education = require('../models/education');
 
 exports.createEducation = async (req, res) => {
-    if (!req.user || !req.user._id) {
+    if (!req.user || !req.user.email) {
         return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
     }
     const { universityName, degreeType, majorName, yearOfGraduate } = req.body;
@@ -11,7 +11,7 @@ exports.createEducation = async (req, res) => {
     }
     try {
         const education = new Education({
-            user: req.user._id,
+            email: req.user.email,
             universityName,
             degreeType,
             majorName,
