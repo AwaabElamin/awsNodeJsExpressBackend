@@ -1,3 +1,5 @@
+// Education and Experience endpoints are now handled in their own controllers/routes.
+// See controllers/education.js and controllers/experience.js for details.
 const bcrypt = require('bcrypt');
 const usersModel = require('../models/users');
 // const connectToUsersDB = require('mongoose');
@@ -123,6 +125,7 @@ exports.getUserByEmail = async(req,res) =>{
             return res.json({
                 status:'success',
                 data:{
+                    id:userFound._id,
                     email:email,
                     phone:userFound.phone,
                     firstname:userFound.firstname,

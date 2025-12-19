@@ -10,4 +10,6 @@ router.post('',usersController.create);
 router.post('/login', authorizationController.login);
 router.post('/forget',usersController.update);
 router.post('/userInfo',authorizationController.authorize,usersController.getUserByEmail);
+// Education and Experience routes are now handled in their own files.
+
 module.exports = router;

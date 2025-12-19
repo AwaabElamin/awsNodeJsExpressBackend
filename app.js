@@ -44,17 +44,20 @@ async function start() {
   app.use(cors());
 
   // require routers after DB is set up so models can read connections
+
   const authorizeRouter = require('./routes/auth');
   const usersRouter = require('./routes/users');
+  const educationRouter = require('./routes/education');
+  const experienceRouter = require('./routes/experience');
   const projectRouter = require('./routes/project');
   const mainMainRouter = require('./routes/mainMain');
   var indexRouter = require('./routes/index');
-  const resumeRoute = require('./routes/resume');
   const autoRouter = require('./routes/auto');
 
   app.use('/', authorizeRouter);
   app.use('/users', usersRouter);
-  app.use('/resume', resumeRoute);
+  app.use('/education', educationRouter);
+  app.use('/experience', experienceRouter);
   app.use('/projects', projectRouter);
   app.use('/mainMain', mainMainRouter);
   app.use('/auto',autoRouter)
