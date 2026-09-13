@@ -47,6 +47,11 @@ exports.create = async (req, res) => {
         try {
             await sendVerificationEmail({ email: normalizedEmail, firstName: firstname || 'there', verificationUrl });
         } catch (mailError) {
+            console.error('Verification email delivery failed', {
+                code: mailError && mailError.code,
+                responseCode: mailError && mailError.responseCode,
+                response: mailError && mailError.response
+            });
             await usersModel.findAndDelete(userAdded._id);
             return res.status(503).json({ status: 'error', message: 'We could not send the confirmation email. Please try again later.' });
         }
