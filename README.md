@@ -22,6 +22,8 @@ npm run dev
 npm start
 ```
 
+The container exposes port `3000` and provides `GET /health` for ECS health checks.
+
 What changed
 - Centralized MongoDB connection in `lib/db.js` and established the connection during server startup in `bin/www`.
 - Removed per-method `mongoose.connect()` calls in `models/users.js` and adjusted controllers to assume an active DB connection.

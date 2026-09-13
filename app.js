@@ -43,6 +43,10 @@ async function start() {
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(cors());
 
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'awsNodeJsExpressBackend' });
+  });
+
   // require routers after DB is set up so models can read connections
   const authorizeRouter = require('./routes/auth');
   const usersRouter = require('./routes/users');
