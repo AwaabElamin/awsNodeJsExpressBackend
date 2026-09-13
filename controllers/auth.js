@@ -16,6 +16,9 @@ exports.login = async (req, res) => {
             const userFound = await userModel.findByEmail(email);
             console.log('user', userFound);
             if (userFound) {  
+                if (userFound.emailVerified === false) {
+                    return res.status(403).json({ status: 'fail', message: 'Please confirm your email address before signing in.' });
+                }
                 console.log('User found, checking password');
                 console.log('user data:', userFound);              
                 if (bcrypt.compareSync(password, userFound.password)) {

@@ -9,7 +9,10 @@ const userSchema = connectToUsersDB.Schema({
     password: { type: String },
     phone: { type: String },
     firstname: { type: String },
-    lastname: { type: String }
+    lastname: { type: String },
+    emailVerified: { type: Boolean, default: false },
+    verificationTokenHash: { type: String, default: null },
+    verificationTokenExpiresAt: { type: Date, default: null }
 })
 const userModel = connectToUsersDB.model('users', userSchema);
 // const conn = connectToUsersDB.createConnection(connectionString);
@@ -70,6 +73,18 @@ class UserCollection {
         } catch (error) {
             throw error;
         }
+    }
+
+    static async findByVerificationToken(tokenHash) {
+        return userModel.findOne({ verificationTokenHash: tokenHash, emailVerified: false });
+    }
+
+    static async markEmailVerified(id) {
+        return userModel.findByIdAndUpdate(
+            id,
+            { $set: { emailVerified: true }, $unset: { verificationTokenHash: 1, verificationTokenExpiresAt: 1 } },
+            { new: true }
+        );
     }
 }
 module.exports = UserCollection;

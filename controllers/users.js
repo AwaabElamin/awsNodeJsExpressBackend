@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const usersModel = require('../models/users');
+const { sendVerificationEmail } = require('../lib/mailer');
 // const connectToUsersDB = require('mongoose');
 // const connectionString =
 //     'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
@@ -14,18 +16,46 @@ exports.create = async (req, res) => {
         return res.status(400).json({ status: 'fail', message: 'Email and password are required' });
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ status: 'fail', message: 'A valid email address is required' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const verificationTokenExpiresAt = new Date(Date.now() + Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES || 30) * 60 * 1000);
+
     const user = {
-        email,
+        email: normalizedEmail,
         password: bcrypt.hashSync(password, 8),
         phone,
         firstname,
-        lastname
+        lastname,
+        emailVerified: false,
+        verificationTokenHash,
+        verificationTokenExpiresAt
     };
 
     try {
         const userAdded = await usersModel.create(user);
-        console.log('add user', userAdded);
-        return res.status(201).json({ status: 'success', data: userAdded });
+        if (typeof userAdded === 'string') {
+            return res.status(409).json({ status: 'fail', message: 'User already exists' });
+        }
+
+        const frontendUrl = String(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+        const verificationUrl = `${frontendUrl}/login/verify?token=${verificationToken}`;
+        try {
+            await sendVerificationEmail({ email: normalizedEmail, firstName: firstname || 'there', verificationUrl });
+        } catch (mailError) {
+            await usersModel.findAndDelete(userAdded._id);
+            return res.status(503).json({ status: 'error', message: 'We could not send the confirmation email. Please try again later.' });
+        }
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Confirmation email sent. Check your inbox to finish creating your account.',
+            data: { email: normalizedEmail }
+        });
     } catch (error) {
         console.log('Route users create catch connected', error);
         if (error && error.code === 11000) {
@@ -138,3 +168,23 @@ exports.getUserByEmail = async(req,res) =>{
         return res.status(500).json({ status: "error", data: error })
     }
 }
+
+exports.verifyEmail = async (req, res) => {
+    const token = String(req.query.token || '').trim();
+    if (!token) {
+        return res.status(400).json({ status: 'fail', message: 'Verification token is required' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    try {
+        const user = await usersModel.findByVerificationToken(tokenHash);
+        if (!user || !user.verificationTokenExpiresAt || user.verificationTokenExpiresAt < new Date()) {
+            return res.status(400).json({ status: 'fail', message: 'This verification link is invalid or expired.' });
+        }
+
+        const verifiedUser = await usersModel.markEmailVerified(user._id);
+        return res.json({ status: 'success', message: 'Email verified. You can now sign in.', data: { email: verifiedUser.email } });
+    } catch (error) {
+        return res.status(500).json({ status: 'error', message: 'We could not verify this email address.' });
+    }
+};
