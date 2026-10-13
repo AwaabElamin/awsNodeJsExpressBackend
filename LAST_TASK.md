@@ -9,7 +9,7 @@ Auto-update policy:
 
 Last completed task:
 - **COMPLETED:** Added Admin-only account listing and Client create, profile update, and delete endpoints.
-- Account responses exclude credentials; mutations cannot change roles, email, or password, and the Admin account is protected.
+- Changes are pushed to `main`; syntax and input-safety checks passed. Account responses exclude credentials, and Client mutations cannot affect Admin accounts or login credentials.
 
 Files affected:
 - app.js
@@ -33,4 +33,4 @@ Current deployment:
 - JWT secret name: `awaaab/backend/jwt-secret` (value is stored in Secrets Manager)
 
 Open follow-up:
-- Confirm the App Runner update operation returns to `RUNNING`; health and Admin login are already succeeding on the routed service.
+- Confirm CI/CD deploys the pushed Admin CRUD API to App Runner.
