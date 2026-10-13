@@ -28,6 +28,7 @@ exports.create = async (req, res) => {
     const user = {
         email: normalizedEmail,
         password: bcrypt.hashSync(password, 8),
+        role: 'Client',
         phone,
         firstname,
         lastname,

@@ -1,6 +1,6 @@
 # Last Task Snapshot
 
-Updated: 2026-09-13
+Updated: 2026-10-12
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -8,16 +8,22 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last completed task:
-- **COMPLETED:** Prepared and deployed the backend to ECS Express Mode with a production Docker image, `/health` endpoint, SMTP secret injection, and email-verification registration flow.
-- Added safe verification-email diagnostics and corrected the sender to the verified `awaab.net` domain.
-- ECS registration testing reached `201 Confirmation email sent`.
+- **COMPLETED:** Subscriber-created accounts are assigned Client; a one-time setup script provisions username Admin and demotes every other account to Client.
+- Login accepts username or email; Admin credentials are hashed from an environment variable, never stored in source.
+- Client brief APIs remain protected by the database-backed Admin role.
 
 Files affected:
-- package.json
-- package-lock.json
-- controllers/users.js
-- Dockerfile
 - app.js
+- controllers/auth.js
+- controllers/clientBriefs.js
+- jwt/jwtManager.js
+- middleware/requireAdmin.js
+- models/clientBrief.js
+- models/users.js
+- routes/clientBriefs.js
+- README.md
+- package.json
+- scripts/setupAdmin.js
 
 Current deployment:
 - ECS service: `buildsudan-backend-a843`
@@ -26,4 +32,5 @@ Current deployment:
 - Health: `https://bu-e09b2728646745cfa68e30c6888b078e.ecs.us-east-1.on.aws/health`
 
 Open follow-up:
-- SES production access is pending. Until approved, SES sandbox restrictions can prevent delivery to unverified recipients.
+- Run `npm run setup:admin` with `ADMIN_PASSWORD` and `MONGODB_URI_USERS` configured to establish the sole Admin account.
+- Configure `JWT_SECRET` and deploy the backend changes before the frontend.

@@ -6,10 +6,12 @@ const connectionString =
 
 const userSchema = connectToUsersDB.Schema({
     email: { type: String, unique: true },
+    username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     password: { type: String },
     phone: { type: String },
     firstname: { type: String },
     lastname: { type: String },
+    role: { type: String, enum: ['Client', 'Admin'], default: 'Client' },
     emailVerified: { type: Boolean, default: false },
     verificationTokenHash: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null }
@@ -73,6 +75,16 @@ class UserCollection {
         } catch (error) {
             throw error;
         }
+    }
+
+    static async findByLoginId(loginId) {
+        const normalizedId = String(loginId || '').trim();
+        return userModel.findOne({
+            $or: [
+                { email: normalizedId.toLowerCase() },
+                { username: normalizedId.toLowerCase() }
+            ]
+        });
     }
 
     static async findByVerificationToken(tokenHash) {

@@ -1,32 +1,22 @@
 const JwtManager = require('../jwt/jwtManager');
 const bcrypt = require('bcrypt');
 const userModel = require('../models/users');
-const connectUsersDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 exports.login = async (req, res) => {
-    console.log("login controller");
-    const { email, password } = req.body;
-    console.log(`username: ${email}, password: ${password}`);
-    // await connectUsersDB.connect(connectionString)
-    //     .then(async () => {
+    const loginId = req.body?.email || req.body?.username || req.body?.loginId;
+    const { password } = req.body || {};
 
-    if (email, password) {
+    if (loginId && password) {
         try {
-            const userFound = await userModel.findByEmail(email);
-            console.log('user', userFound);
+            const userFound = await userModel.findByLoginId(loginId);
             if (userFound) {  
                 if (userFound.emailVerified === false) {
                     return res.status(403).json({ status: 'fail', message: 'Please confirm your email address before signing in.' });
                 }
-                console.log('User found, checking password');
-                console.log('user data:', userFound);              
                 if (bcrypt.compareSync(password, userFound.password)) {
-                    const data = { email: email, password: password };
+                    const data = { email: userFound.email };
                     const jwt = new JwtManager();
                     const token = jwt.generate(data);
-                    console.log("Token: ", token);
-                    res.json({ status: 'success', accessToken: token, email: email, _id: userFound._id });
+                    res.json({ status: 'success', accessToken: token, email: userFound.email, _id: userFound._id, role: userFound.role || 'Client' });
                 } else {
                     res.send({ status: 'fail', message: 'Wrong password' });
                 }
@@ -36,11 +26,11 @@ exports.login = async (req, res) => {
             }
         }
         catch (error) {
-            console.log("Route Users login catch connected", error);
-            res.send({ status: "error", data: error })
+            console.error('Login failed', error.message);
+            res.status(500).send({ status: 'error', message: 'Unable to sign in' });
         }
     } else {
-        res.send({ status: 'fail', data: 'Please provide the email and password' });
+        res.status(400).send({ status: 'fail', data: 'Please provide a username or email and password' });
     }
 
 
