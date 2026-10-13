@@ -1,6 +1,6 @@
 # Last Task Snapshot
 
-Updated: 2026-10-12
+Updated: 2026-10-13
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -8,29 +8,29 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last completed task:
-- **COMPLETED:** Subscriber-created accounts are assigned Client; a one-time setup script provisions username Admin and demotes every other account to Client.
-- Login accepts username or email; Admin credentials are hashed from an environment variable, never stored in source.
-- Client brief APIs remain protected by the database-backed Admin role.
+- **COMPLETED:** Added Admin-only account listing and Client create, profile update, and delete endpoints.
+- Account responses exclude credentials; mutations cannot change roles, email, or password, and the Admin account is protected.
 
 Files affected:
 - app.js
 - controllers/auth.js
 - controllers/clientBriefs.js
+- controllers/adminUsers.js
 - jwt/jwtManager.js
 - middleware/requireAdmin.js
 - models/clientBrief.js
 - models/users.js
 - routes/clientBriefs.js
+- routes/adminUsers.js
 - README.md
 - package.json
 - scripts/setupAdmin.js
 
 Current deployment:
-- ECS service: `buildsudan-backend-a843`
+- App Runner service: `BackendNodeJsAppRunner`
 - Region: `us-east-1`
-- Image: `buildsudan-backend:ecs-migration-8`
-- Health: `https://bu-e09b2728646745cfa68e30c6888b078e.ecs.us-east-1.on.aws/health`
+- Backend: `https://epdqkqaj3f.us-east-1.awsapprunner.com/`
+- JWT secret name: `awaaab/backend/jwt-secret` (value is stored in Secrets Manager)
 
 Open follow-up:
-- Run `npm run setup:admin` with `ADMIN_PASSWORD` and `MONGODB_URI_USERS` configured to establish the sole Admin account.
-- Configure `JWT_SECRET` and deploy the backend changes before the frontend.
+- Confirm the App Runner update operation returns to `RUNNING`; health and Admin login are already succeeding on the routed service.

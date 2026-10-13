@@ -29,6 +29,24 @@ class UserCollection {
         console.log('findById:- ', user);
         return user;
     }
+    static async listAllForAdmin() {
+        return userModel.find({})
+            .select('email username firstname lastname phone role emailVerified createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+    }
+    static async updateClientForAdmin(id, fields) {
+        return userModel.findOneAndUpdate(
+            { _id: id, role: 'Client' },
+            { $set: fields },
+            { new: true, runValidators: true, projection: 'email username firstname lastname phone role emailVerified createdAt' }
+        ).lean();
+    }
+    static async deleteClientForAdmin(id) {
+        return userModel.findOneAndDelete({ _id: id, role: 'Client' })
+            .select('_id email')
+            .lean();
+    }
     static async create(user) {
         const new_user = new userModel(user);
         try {

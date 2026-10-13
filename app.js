@@ -56,6 +56,7 @@ async function start() {
   const resumeRoute = require('./routes/resume');
   const autoRouter = require('./routes/auto');
   const clientBriefsRouter = require('./routes/clientBriefs');
+  const adminUsersRouter = require('./routes/adminUsers');
 
   app.use('/', authorizeRouter);
   app.use('/users', usersRouter);
@@ -64,6 +65,7 @@ async function start() {
   app.use('/mainMain', mainMainRouter);
   app.use('/auto',autoRouter)
   app.use('/client-briefs', clientBriefsRouter);
+  app.use('/admin/users', adminUsersRouter);
 
   // error handler
   app.use(function (err, req, res, next) {

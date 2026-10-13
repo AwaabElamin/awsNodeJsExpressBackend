@@ -36,9 +36,11 @@ What changed
 
 - `POST /client-briefs` accepts client submissions from the public Awaaab project brief form.
 - `GET /client-briefs` requires a valid account token and an Admin role; the role is rechecked against the user record on each request.
+- `/admin/users` requires the same Admin authorization for account listing, Client creation, Client profile updates, and Client deletion. Responses never include password hashes or verification tokens.
+- Account listing includes the Admin record for visibility; the API only permits CRUD on `Client` records. Client creation requires email verification; roles, emails, and passwords cannot be changed through profile editing.
 - Public signups always receive the `Client` role. They cannot choose or submit a role.
 - Configure the sole Admin with `ADMIN_PASSWORD` and `MONGODB_URI_USERS` in the environment, then run `npm run setup:admin`. The script hashes the password, provisions the username `Admin`, and demotes any other Admin accounts to `Client`.
 - The Admin password is never stored in source code. Use a strong password and do not print it in logs.
-- Configure `JWT_SECRET` in the backend environment before deployment. Existing sessions must sign in again after the JWT signing key changes.
+- Configure `JWT_SECRET` as an App Runner runtime secret referencing AWS Secrets Manager, with an instance role limited to `secretsmanager:GetSecretValue` for that secret. Existing sessions must sign in again after the JWT signing key changes.
 
 If you want me to continue: I can centralize multiple DBs (create separate connections), add simple integration tests, or replace hard-coded data with seeded collections.
