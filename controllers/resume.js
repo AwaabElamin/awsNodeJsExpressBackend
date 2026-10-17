@@ -1,7 +1,4 @@
 const resumeModel = require('../models/resume');
-const connectResumeDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
 exports.getAll = async (req, res) => {
     // await connectResumeDB.connect(connectionString)
     //     .then(async () => {

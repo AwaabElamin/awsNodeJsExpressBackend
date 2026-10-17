@@ -9,10 +9,10 @@ const DB = require('./lib/db');
 async function start() {
   // Connect to databases before requiring route handlers/models
   try {
-    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
-    const deliveryUri = process.env.MONGODB_URI_DELIVERY || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority';
-    const resumeUri = process.env.MONGODB_URI_RESUME || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
-    const carshopUri = process.env.MONGODB_URI_CARSHOP || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/CarShop?retryWrites=true&w=majority';
+    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI;
+    const deliveryUri = process.env.MONGODB_URI_DELIVERY;
+    const resumeUri = process.env.MONGODB_URI_RESUME;
+    const carshopUri = process.env.MONGODB_URI_CARSHOP;
 
     console.log('Connecting to default (users) MongoDB...');
     await DB.connect(usersUri);

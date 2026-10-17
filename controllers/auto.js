@@ -1,30 +1,57 @@
 const auto = require('../models/auto');
-const bcrypt = require('bcrypt');
-const connectAutoDB = require('mongoose');
 
-exports.getAutoUser = async (req, res) => {
+exports.provisionUser = async (req, res, next) => {
     try {
-        console.log("email",req.params.email);
-        const user = await auto.getUserInfo(req.params.email);
-        res.send({ status: "success", data: user });
-    } catch (error) {
-        console.log("Route Auto get autoUser catch connected", error);
-        res.send({ status: "error", data: error })
-    };
-}
-exports.addAutoUser = async (req, res) => {
-    try {
-        const newUser = {
-            email: req.body.email,
-            password: bcrypt.hashSync("testTest", 8),
-            phone: req.body.phone,
-            firstname: req.body.firstname,
-            lastname: req.body.lastname
+        if (!req.account) {
+            return res.status(403).json({ status: 'fail', message: 'An Awaaab account is required.' });
         }
-        const user = await auto.addNewUser(newUser);
-        res.send({ status: "success", data: user });
+
+        let user = await auto.getUserInfo(req.autoUser.email);
+        if (!user) {
+            user = await auto.addNewUser({
+                email: req.autoUser.email,
+                firstName: req.account.firstName,
+                lastName: req.account.lastName
+            });
+        }
+
+        return res.status(201).json({
+            status: 'success',
+            data: {
+                _id: user._id,
+                email: user.email,
+                firstname: user.firstname || user.firstName,
+                lastname: user.lastname || user.lastName,
+                userRole: user.userRole || 'Employee',
+                status: user.status || 1
+            }
+        });
     } catch (error) {
-        console.log("Route Auto add autoUser catch connected", error);
-        res.send({ status: "error", data: error });
+        if (error.code === 11000) {
+            return res.status(409).json({ status: 'fail', message: 'An AutoHub account already exists.' });
+        }
+        return next(error);
     }
-}
+};
+
+exports.getAutoUser = async (req, res, next) => {
+    try {
+        const user = await auto.getUserInfo(req.autoUser.email);
+        if (!user) {
+            return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+        }
+        return res.json({
+            status: 'success',
+            data: {
+                _id: user._id,
+                email: user.email,
+                firstname: user.firstname || user.firstName || '',
+                lastname: user.lastname || user.lastName || '',
+                userRole: user.userRole || 'Employee',
+                status: user.status || 1
+            }
+        });
+    } catch (error) {
+        return next(error);
+    }
+};

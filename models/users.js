@@ -1,8 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const connectToUsersDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 
 const userSchema = connectToUsersDB.Schema({
     email: { type: String, unique: true },
@@ -17,7 +15,6 @@ const userSchema = connectToUsersDB.Schema({
     verificationTokenExpiresAt: { type: Date, default: null }
 })
 const userModel = connectToUsersDB.model('users', userSchema);
-// const conn = connectToUsersDB.createConnection(connectionString);
 class UserCollection {
     static async findAll() {
         const users = await userModel.find({});

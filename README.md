@@ -43,4 +43,19 @@ What changed
 - The Admin password is never stored in source code. Use a strong password and do not print it in logs.
 - Configure `JWT_SECRET` as an App Runner runtime secret referencing AWS Secrets Manager, with an instance role limited to `secretsmanager:GetSecretValue` for that secret. Existing sessions must sign in again after the JWT signing key changes.
 
+## AutoHub
+
+- AutoHub is mounted under `/auto` and uses the existing `carshop` MongoDB connection (`MONGODB_URI_CARSHOP`).
+- The Awaaab React frontend uses its signed-in, email-verified account for AutoHub profile provisioning and vehicle management; vehicle ownership is derived from the verified token, not request fields.
+- `POST /auto/user` provisions the signed-in account, `GET /auto/user` reads its profile, and `GET /auto/usedCars/viewAll` lists public inventory.
+- `GET /auto/usedCars`, `POST /auto/usedCars`, `POST /auto/usedCars/edit`, and `POST /auto/usedCars/delete` require a valid account token and restrict mutations and private listings to that account's email.
+- AutoHub has no separate login or registration endpoints; it uses the same verified Awaaab account and JWT flow as other protected Awaaab features.
+
+### Moving existing AutoHub vehicles
+
+- The one-time migration copies legacy `usedCars` records into the database configured by `MONGODB_URI_CARSHOP` and creates missing `autoUsers` profiles for matching, email-verified Awaaab accounts. It does not copy old AutoHub accounts or passwords.
+- Set `AUTOHUB_SOURCE_MONGODB_URI`, `MONGODB_URI_USERS`, and `MONGODB_URI_CARSHOP` in the current shell to rotated credentials. Do not use the exposed legacy `root:123` credential or put connection strings in source control.
+- `npm run migrate:autohub` is read-only and prints a count-only plan. Review the source and destination database names and all skip/conflict counts before running `npm run migrate:autohub -- --apply`.
+- Apply mode refuses to write if any vehicle lacks an owner email, its owner does not match a verified Awaaab account, or its `_id` is already associated with another target owner. Existing target profiles and same-owner vehicle records remain unchanged; legacy password fields on target `autoUsers` are removed because authentication now uses Awaaab accounts.
+
 If you want me to continue: I can centralize multiple DBs (create separate connections), add simple integration tests, or replace hard-coded data with seeded collections.

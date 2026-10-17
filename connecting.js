@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 class ConnectionDB {
     static async connectToDeliveryBD() {
-        const connectionString =
-            'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority'
+        const connectionString = process.env.MONGODB_URI_DELIVERY;
+        if (!connectionString) {
+            throw new Error('MONGODB_URI_DELIVERY environment variable is required');
+        }
         try {
-            mongoose.connect(connectionString);
+            await mongoose.connect(connectionString);
             console.log("Awaab connected");
         } catch (error) {
             console.log('Error: ', error);

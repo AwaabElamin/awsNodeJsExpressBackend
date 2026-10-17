@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node app.js",
-    "setup:admin": "node scripts/setupAdmin.js"
+    "setup:admin": "node scripts/setupAdmin.js",
+    "migrate:autohub": "node scripts/migrateAutoHub.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
