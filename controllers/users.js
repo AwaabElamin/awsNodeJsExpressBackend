@@ -160,6 +160,7 @@ exports.getUserByEmail = async(req,res) =>{
                     phone:userFound.phone,
                     firstname:userFound.firstname,
                     lastname:userFound.lastname,
+                    platforms:userFound.platforms || [],
                     password:""
                 }
             });

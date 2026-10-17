@@ -1,10 +1,15 @@
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 
-const batchSize = 400;
 const applyChanges = process.argv.includes('--apply');
+const platformId = 'auto';
 
-function getDatabaseName(uri, variableName) {
+function getMongoUri(variableName, fallback = '') {
+    const uri = process.env[variableName] || fallback;
+    if (!uri) {
+        throw new Error(`${variableName} is required. Supply rotated credentials through the current shell environment.`);
+    }
+
     let parsed;
     try {
         parsed = new URL(uri);
@@ -12,244 +17,128 @@ function getDatabaseName(uri, variableName) {
         throw new Error(`${variableName} must be a valid MongoDB URI.`);
     }
 
-    const databaseName = decodeURIComponent(parsed.pathname.replace(/^\/+/, '').split('/')[0] || '');
-    if (!databaseName) {
-        throw new Error(`${variableName} must include a database name in its path.`);
+    if (decodeURIComponent(parsed.username).toLowerCase() === 'root'
+        && decodeURIComponent(parsed.password) === '123') {
+        throw new Error(`${variableName} uses the compromised legacy MongoDB credential. Refusing to connect.`);
     }
 
-    return databaseName;
-}
-
-function getMongoHost(uri, variableName) {
-    try {
-        return new URL(uri).host.toLowerCase();
-    } catch {
-        throw new Error(`${variableName} must be a valid MongoDB URI.`);
-    }
-}
-
-function getMongoUri(variableName) {
-    const uri = process.env[variableName];
-    if (!uri) {
-        throw new Error(`${variableName} is required. Supply rotated credentials through the current shell environment.`);
-    }
-    try {
-        const parsed = new URL(uri);
-        if (decodeURIComponent(parsed.username).toLowerCase() === 'root'
-            && decodeURIComponent(parsed.password) === '123') {
-            throw new Error(`${variableName} uses the compromised legacy MongoDB credential. Refusing to connect.`);
-        }
-    } catch (error) {
-        if (error instanceof Error && error.message.includes('compromised legacy')) {
-            throw error;
-        }
-        throw new Error(`${variableName} must be a valid MongoDB URI.`);
-    }
-
-    return uri;
-}
-
-function chunks(values) {
-    const result = [];
-    for (let index = 0; index < values.length; index += batchSize) {
-        result.push(values.slice(index, index + batchSize));
-    }
-    return result;
+    return { uri, parsed };
 }
 
 function normalizeEmail(value) {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
-async function collectExistingCars(collection, ids) {
-    const existingCars = new Map();
-    for (const idBatch of chunks(ids)) {
-        const rows = await collection.find(
-            { _id: { $in: idBatch } },
-            { projection: { _id: 1, email: 1 } }
-        ).toArray();
-        for (const row of rows) {
-            existingCars.set(String(row._id), row);
-        }
-    }
-    return existingCars;
-}
-
-async function collectAwaaabUsers(collection, emails) {
-    const usersByEmail = new Map();
-    for (const emailBatch of chunks(emails)) {
-        const rows = await collection.find(
-            { email: { $in: emailBatch }, emailVerified: { $ne: false } },
-            { projection: { email: 1, firstname: 1, lastname: 1 } }
-        ).toArray();
-        for (const row of rows) {
-            const email = normalizeEmail(row.email);
-            if (email) usersByEmail.set(email, row);
-        }
-    }
-    return usersByEmail;
-}
-
-async function collectExistingProfiles(collection, emails) {
-    const existingEmails = new Set();
-    for (const emailBatch of chunks(emails)) {
-        const rows = await collection.find(
-            { email: { $in: emailBatch } },
-            { projection: { email: 1 } }
-        ).toArray();
-        for (const row of rows) {
-            const email = normalizeEmail(row.email);
-            if (email) existingEmails.add(email);
-        }
-    }
-    return existingEmails;
-}
-
 async function main() {
     if (process.argv.includes('--help')) {
         console.log('Usage: npm run migrate:autohub [-- --apply]');
-        console.log('Dry-run is the default. --apply writes only after all ownership and ID checks pass.');
+        console.log('Dry-run is the default. This backfills owner IDs and platform access on the already-copied databases; it does not copy records.');
         return;
     }
 
-    const sourceUri = getMongoUri('AUTOHUB_SOURCE_MONGODB_URI');
-    const usersUri = getMongoUri('MONGODB_URI_USERS');
-    const targetUri = getMongoUri('MONGODB_URI_CARSHOP');
-    const sourceDatabaseName = getDatabaseName(sourceUri, 'AUTOHUB_SOURCE_MONGODB_URI');
-    const usersDatabaseName = getDatabaseName(usersUri, 'MONGODB_URI_USERS');
-    const targetDatabaseName = getDatabaseName(targetUri, 'MONGODB_URI_CARSHOP');
-    if (getMongoHost(sourceUri, 'AUTOHUB_SOURCE_MONGODB_URI') === getMongoHost(targetUri, 'MONGODB_URI_CARSHOP')
-        && sourceDatabaseName === targetDatabaseName) {
-        throw new Error('Source and target resolve to the same MongoDB host/database. Refusing to run.');
+    const usersConnection = getMongoUri('MONGODB_URI_USERS');
+    const usersDatabaseName = decodeURIComponent(usersConnection.parsed.pathname.replace(/^\/+/, '').split('/')[0] || '');
+    const carshopDatabaseName = process.env.MONGODB_DB_CARSHOP || 'CarShop';
+
+    if (!usersDatabaseName || !carshopDatabaseName) {
+        throw new Error('Both the users and CarShop database names must be configured.');
     }
 
-    const clients = [new MongoClient(sourceUri), new MongoClient(usersUri), new MongoClient(targetUri)];
+    const client = new MongoClient(usersConnection.uri);
+
     try {
-        await Promise.all(clients.map((client) => client.connect()));
+        await client.connect();
 
-        const sourceCars = await clients[0].db(sourceDatabaseName).collection('usedCars')
-            .find({}, {
-                projection: {
-                    _id: 1,
-                    make: 1,
-                    model: 1,
-                    color: 1,
-                    year: 1,
-                    description: 1,
-                    mainImage: 1,
-                    imagesFolder: 1,
-                    email: 1
-                }
-            })
-            .toArray();
+        const usersCollection = client.db(usersDatabaseName).collection('users');
+        const vehiclesCollection = client.db(carshopDatabaseName).collection('usedCars');
+        const vehicles = await vehiclesCollection.find({}, {
+            projection: { _id: 1, email: 1, ownerId: 1 }
+        }).toArray();
+        const emails = [...new Set(vehicles.map((vehicle) => normalizeEmail(vehicle.email)).filter(Boolean))];
+        const users = await usersCollection.find(
+            { email: { $in: emails }, emailVerified: { $ne: false } },
+            { projection: { _id: 1, email: 1, emailVerified: 1, platforms: 1 } }
+        ).toArray();
+        const usersByEmail = new Map(users.map((user) => [normalizeEmail(user.email), user]));
+        const ownerIdsToEnable = new Map();
+        const ownerIdBackfills = [];
+        let missingEmail = 0;
+        let missingOrUnverifiedAccount = 0;
+        let ownerIdConflicts = 0;
+        let alreadyLinked = 0;
 
-        const ownerEmails = [...new Set(sourceCars.map((car) => normalizeEmail(car.email)).filter(Boolean))];
-        const usersCollection = clients[1].db(usersDatabaseName).collection('users');
-        const targetDb = clients[2].db(targetDatabaseName);
-        const targetCarsCollection = targetDb.collection('usedCars');
-        const targetProfilesCollection = targetDb.collection('autoUsers');
-
-        const usersByEmail = await collectAwaaabUsers(usersCollection, ownerEmails);
-        const eligibleCars = [];
-        let missingOwner = 0;
-        let unverifiedOrUnknownOwner = 0;
-
-        for (const sourceCar of sourceCars) {
-            const email = normalizeEmail(sourceCar.email);
+        for (const vehicle of vehicles) {
+            const email = normalizeEmail(vehicle.email);
             if (!email) {
-                missingOwner += 1;
+                missingEmail += 1;
                 continue;
             }
-            if (!usersByEmail.has(email)) {
-                unverifiedOrUnknownOwner += 1;
+
+            const user = usersByEmail.get(email);
+            if (!user) {
+                missingOrUnverifiedAccount += 1;
                 continue;
             }
-            eligibleCars.push({
-                _id: sourceCar._id,
-                make: sourceCar.make,
-                model: sourceCar.model,
-                color: sourceCar.color,
-                year: sourceCar.year,
-                description: sourceCar.description,
-                mainImage: sourceCar.mainImage,
-                imagesFolder: sourceCar.imagesFolder,
-                email
-            });
-        }
 
-        const existingCars = await collectExistingCars(
-            targetCarsCollection,
-            eligibleCars.map((car) => car._id)
-        );
-        const carsToInsert = [];
-        let alreadyPresent = 0;
-        let ownerConflicts = 0;
+            if (vehicle.ownerId && String(vehicle.ownerId) !== String(user._id)) {
+                ownerIdConflicts += 1;
+                continue;
+            }
 
-        for (const car of eligibleCars) {
-            const existing = existingCars.get(String(car._id));
-            if (!existing) {
-                carsToInsert.push(car);
-            } else if (normalizeEmail(existing.email) === car.email) {
-                alreadyPresent += 1;
+            ownerIdsToEnable.set(String(user._id), user._id);
+            if (!vehicle.ownerId) {
+                ownerIdBackfills.push({
+                    updateOne: {
+                        filter: { _id: vehicle._id, ownerId: null, email: vehicle.email },
+                        update: { $set: { ownerId: user._id, email } }
+                    }
+                });
             } else {
-                ownerConflicts += 1;
+                alreadyLinked += 1;
             }
         }
 
-        const ownersToProvision = [...new Set(carsToInsert.map((car) => car.email))];
-        const existingProfileEmails = await collectExistingProfiles(targetProfilesCollection, ownersToProvision);
-        const profilesWithLegacyPasswords = await targetProfilesCollection.countDocuments({ password: { $exists: true } });
-        const profilesToInsert = ownersToProvision
-            .filter((email) => !existingProfileEmails.has(email))
-            .map((email) => {
-                const user = usersByEmail.get(email);
-                return {
-                    email,
-                    firstname: user.firstname || '',
-                    lastname: user.lastname || '',
-                    userRole: 'Employee',
-                    status: 1
-                };
-            });
+        const alreadyEnabled = users.filter((user) =>
+            ownerIdsToEnable.has(String(user._id)) && Array.isArray(user.platforms) && user.platforms.includes(platformId)
+        ).length;
+        const platformMembershipsToAdd = Math.max(0, ownerIdsToEnable.size - alreadyEnabled);
 
         console.log(`Mode: ${applyChanges ? 'APPLY' : 'DRY RUN'}`);
-        console.log(`Source database: ${sourceDatabaseName}`);
-        console.log(`Awaaab users database: ${usersDatabaseName}`);
-        console.log(`Target database: ${targetDatabaseName}`);
-        console.log(`Source vehicles: ${sourceCars.length}`);
-        console.log(`Vehicles ready to insert: ${carsToInsert.length}`);
-        console.log(`Existing same-owner vehicles left unchanged: ${alreadyPresent}`);
-        console.log(`Vehicles without an owner email: ${missingOwner}`);
-        console.log(`Vehicles whose owner has no verified Awaaab account: ${unverifiedOrUnknownOwner}`);
-        console.log(`Vehicle ID owner conflicts: ${ownerConflicts}`);
-        console.log(`AutoHub profiles ready to create: ${profilesToInsert.length}`);
-        console.log(`Existing AutoHub profiles with legacy passwords to remove: ${profilesWithLegacyPasswords}`);
+        console.log(`Shared users database: ${usersDatabaseName}`);
+        console.log(`Copied CarShop database: ${carshopDatabaseName}`);
+        console.log(`Vehicles scanned: ${vehicles.length}`);
+        console.log(`Verified Awaaab owners matched: ${ownerIdsToEnable.size}`);
+        console.log(`Vehicle owner IDs to backfill: ${ownerIdBackfills.length}`);
+        console.log(`Vehicles already linked by owner ID: ${alreadyLinked}`);
+        console.log(`Platform memberships to add: ${platformMembershipsToAdd}`);
+        console.log(`Vehicles with no owner email: ${missingEmail}`);
+        console.log(`Vehicles with missing or unverified Awaaab owner: ${missingOrUnverifiedAccount}`);
+        console.log(`Existing owner ID conflicts: ${ownerIdConflicts}`);
 
         if (!applyChanges) {
-            console.log('No data was written. Review the counts and database names, then rerun with --apply to commit the migration.');
+            console.log('No data was written. Review these counts, then rerun with --apply to backfill owner IDs and platform membership.');
             return;
         }
 
-        if (missingOwner || unverifiedOrUnknownOwner || ownerConflicts) {
-            throw new Error('Unsafe migration plan: resolve all missing owners, account mismatches, and ID conflicts before applying. No writes were made.');
+        if (missingEmail || missingOrUnverifiedAccount || ownerIdConflicts) {
+            throw new Error('Unsafe backfill plan: resolve all missing owners, unverified accounts, and owner ID conflicts first. No writes were made.');
         }
 
-        const passwordCleanup = await targetProfilesCollection.updateMany(
-            { password: { $exists: true } },
-            { $unset: { password: '' } }
-        );
-        if (profilesToInsert.length) {
-            await targetProfilesCollection.insertMany(profilesToInsert, { ordered: true });
+        if (ownerIdsToEnable.size) {
+            await usersCollection.updateMany(
+                { _id: { $in: [...ownerIdsToEnable.values()] }, emailVerified: { $ne: false } },
+                { $addToSet: { platforms: platformId } }
+            );
         }
-        if (carsToInsert.length) {
-            await targetCarsCollection.insertMany(carsToInsert, { ordered: true });
+        if (ownerIdBackfills.length) {
+            await vehiclesCollection.bulkWrite(ownerIdBackfills, { ordered: true });
         }
 
-        console.log(`Created AutoHub profiles: ${profilesToInsert.length}`);
-        console.log(`Copied vehicles: ${carsToInsert.length}`);
-        console.log(`Removed legacy AutoHub passwords: ${passwordCleanup.modifiedCount}`);
+        console.log(`Platform memberships added: ${platformMembershipsToAdd}`);
+        console.log(`Vehicle owner IDs backfilled: ${ownerIdBackfills.length}`);
+        console.log('Copied vehicle documents were not duplicated.');
     } finally {
-        await Promise.all(clients.map((client) => client.close()));
+        await client.close();
     }
 }
 

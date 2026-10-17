@@ -22,12 +22,19 @@ module.exports = async (req, res, next) => {
         if (!account || account.emailVerified === false) {
             return res.status(401).json({ status: 'fail', message: 'Unauthenticated.' });
         }
-        req.autoUser = { email };
         req.account = {
+            _id: account._id,
             email,
             firstName: account.firstname,
-            lastName: account.lastname
+            lastName: account.lastname,
+            firstname: account.firstname,
+            lastname: account.lastname,
+            phone: account.phone,
+            role: account.role,
+            platforms: Array.isArray(account.platforms) ? account.platforms : [],
+            emailVerified: account.emailVerified
         };
+        req.autoUser = { id: account._id, email };
         return next();
     } catch (error) {
         return next(error);

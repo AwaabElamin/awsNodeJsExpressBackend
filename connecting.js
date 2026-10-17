@@ -1,16 +1,11 @@
-const mongoose = require('mongoose');
+const DB = require('./lib/db');
 class ConnectionDB {
     static async connectToDeliveryBD() {
-        const connectionString = process.env.MONGODB_URI_DELIVERY;
-        if (!connectionString) {
-            throw new Error('MONGODB_URI_DELIVERY environment variable is required');
+        const connection = DB.getConnection('delivery');
+        if (!connection) {
+            throw new Error("The 'delivery' MongoDB connection is not available");
         }
-        try {
-            await mongoose.connect(connectionString);
-            console.log("Awaab connected");
-        } catch (error) {
-            console.log('Error: ', error);
-        }
+        return connection;
     }
 }
 module.exports = ConnectionDB;
