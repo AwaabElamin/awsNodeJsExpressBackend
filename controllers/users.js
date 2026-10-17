@@ -2,9 +2,6 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const usersModel = require('../models/users');
 const { sendVerificationEmail } = require('../lib/mailer');
-// const connectToUsersDB = require('mongoose');
-// const connectionString =
-//     'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 exports.create = async (req, res) => {
     // Input validation
     if (!req.body || !req.body.user) {
@@ -163,6 +160,7 @@ exports.getUserByEmail = async(req,res) =>{
                     phone:userFound.phone,
                     firstname:userFound.firstname,
                     lastname:userFound.lastname,
+                    platforms:userFound.platforms || [],
                     password:""
                 }
             });

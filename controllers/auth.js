@@ -42,7 +42,6 @@ exports.authorize = (req, res, next) => {
         return res.status(401).json({ status: 'fail', message: 'no Authorization' });
     }
 
-    console.log('Authorization Header:', authHeader.split(' '));
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
         return res.status(401).json({ status: 'fail', message: 'Invalid Authorization format' });
@@ -52,7 +51,7 @@ exports.authorize = (req, res, next) => {
     const jwt = new JwtManager();
     try {
         const data = jwt.verify(token);
-        if (!data) {
+        if (!data || data.autoHub === true) {
             return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
         }
         // attach verified data to request for downstream handlers

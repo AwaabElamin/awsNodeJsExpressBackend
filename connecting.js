@@ -1,14 +1,11 @@
-const mongoose = require('mongoose');
+const DB = require('./lib/db');
 class ConnectionDB {
     static async connectToDeliveryBD() {
-        const connectionString =
-            'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority'
-        try {
-            mongoose.connect(connectionString);
-            console.log("Awaab connected");
-        } catch (error) {
-            console.log('Error: ', error);
+        const connection = DB.getConnection('delivery');
+        if (!connection) {
+            throw new Error("The 'delivery' MongoDB connection is not available");
         }
+        return connection;
     }
 }
 module.exports = ConnectionDB;

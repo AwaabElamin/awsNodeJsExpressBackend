@@ -43,4 +43,26 @@ What changed
 - The Admin password is never stored in source code. Use a strong password and do not print it in logs.
 - Configure `JWT_SECRET` as an App Runner runtime secret referencing AWS Secrets Manager, with an instance role limited to `secretsmanager:GetSecretValue` for that secret. Existing sessions must sign in again after the JWT signing key changes.
 
+## AutoHub
+
+- AutoHub is mounted under `/auto`; vehicle data uses the copied `CarShop.usedCars` collection, while identity and platform access use the shared Awaaab `users` collection (`platforms` records enabled workspaces).
+- One `MONGODB_URI_USERS` connection can access the copied `users`, `Delivery`, `resume`, and `CarShop` databases; `MONGODB_DB_DELIVERY`, `MONGODB_DB_RESUME`, and `MONGODB_DB_CARSHOP` select each platform database. Set per-platform URI overrides only if a platform is later moved to another cluster.
+- Resume has explicit collection schemas in `models/resume.js`. Delivery uses `models/delivery.js` to expose per-collection schemas without dropping unknown copied fields; replace these permissive schemas with explicit field definitions when its legacy contracts are documented.
+- The Awaaab React frontend uses its signed-in, email-verified account for AutoHub access; vehicle ownership is derived from that user's `_id` in the verified token, not request fields. Public marketplace responses omit owner IDs and email addresses.
+- Visitors can start a vehicle conversation with `POST /auto/conversations`, then read/reply through `/auto/conversations/:id` using the random guest token returned at creation. Only a SHA-256 token hash is stored, and message writes are rate-limited.
+- Signed-in AutoHub owners use `GET /auto/messages/inbox`, `GET /auto/messages/inbox/:id`, and `POST /auto/messages/inbox/:id/reply`. The backend scopes conversations by the verified account `_id`; visitor contact details are shared only with that listing's owner and the guest thread.
+- Vehicle photos use the private `AUTOHUB_S3_BUCKET`. `POST /auto/usedCars/photo-upload-url` returns a five-minute presigned PUT scoped to the signed-in owner's `autohub/<userId>/` prefix; public and owner vehicle APIs return one-hour presigned GETs. The App Runner instance role needs only `s3:GetObject` and `s3:PutObject` on that prefix; no S3 credentials belong in the frontend.
+- `POST /auto/user` provisions the signed-in account, `GET /auto/user` reads its profile, and `GET /auto/usedCars/viewAll` lists public inventory.
+- `GET /auto/usedCars`, `POST /auto/usedCars`, `POST /auto/usedCars/edit`, and `POST /auto/usedCars/delete` require a valid account token and restrict mutations and private listings to that account's email.
+- Visitors can start a vehicle conversation with `POST /auto/conversations`, then read/reply through `/auto/conversations/:id` using the one-time guest token returned at creation. Only a SHA-256 token hash is stored; write routes are rate-limited.
+- Signed-in AutoHub owners use `GET /auto/messages/inbox`, `GET /auto/messages/inbox/:id`, and `POST /auto/messages/inbox/:id/reply`. The backend scopes conversations by the verified account `_id`; visitor name/email are visible only to that vehicle's owner and the guest thread.
+- AutoHub has no separate login or registration endpoints; it uses the same verified Awaaab account and JWT flow as other protected Awaaab features.
+
+### Updating copied AutoHub vehicles
+
+- Legacy databases are already copied into the Awaaab Atlas cluster; this utility does not copy databases or create duplicate AutoHub accounts.
+- `npm run migrate:autohub` is read-only and reports whether copied vehicle owners match verified Awaaab accounts, whether IDs conflict, and how many records need an `ownerId` backfill.
+- After supplying a rotated `MONGODB_URI_USERS`, review the plan and run `npm run migrate:autohub -- --apply` to add `auto` to matching users' `platforms` and backfill stable vehicle owner IDs in `CarShop.usedCars`. Apply mode refuses to write if owners are missing/unverified or IDs conflict.
+- The shared Awaaab user record stores platform membership in `platforms`; old copied AutoHub user/password documents are not used for authentication.
+
 If you want me to continue: I can centralize multiple DBs (create separate connections), add simple integration tests, or replace hard-coded data with seeded collections.

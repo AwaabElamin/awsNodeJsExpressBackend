@@ -1,8 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const connectToUsersDB = require('mongoose');
-const connectionString =
-    'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
 
 const userSchema = connectToUsersDB.Schema({
     email: { type: String, unique: true },
@@ -12,12 +10,12 @@ const userSchema = connectToUsersDB.Schema({
     firstname: { type: String },
     lastname: { type: String },
     role: { type: String, enum: ['Client', 'Admin'], default: 'Client' },
+    platforms: { type: [String], default: [] },
     emailVerified: { type: Boolean, default: false },
     verificationTokenHash: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null }
 })
 const userModel = connectToUsersDB.model('users', userSchema);
-// const conn = connectToUsersDB.createConnection(connectionString);
 class UserCollection {
     static async findAll() {
         const users = await userModel.find({});
@@ -31,7 +29,7 @@ class UserCollection {
     }
     static async listAllForAdmin() {
         return userModel.find({})
-            .select('email username firstname lastname phone role emailVerified createdAt')
+            .select('email username firstname lastname phone role platforms emailVerified createdAt')
             .sort({ createdAt: -1 })
             .lean();
     }
@@ -39,7 +37,7 @@ class UserCollection {
         return userModel.findOneAndUpdate(
             { _id: id, role: 'Client' },
             { $set: fields },
-            { new: true, runValidators: true, projection: 'email username firstname lastname phone role emailVerified createdAt' }
+            { new: true, runValidators: true, projection: 'email username firstname lastname phone role platforms emailVerified createdAt' }
         ).lean();
     }
     static async deleteClientForAdmin(id) {
@@ -93,6 +91,32 @@ class UserCollection {
         } catch (error) {
             throw error;
         }
+    }
+
+    static async findPlatformOwnerById(id, platformId) {
+        return userModel.findOne({ _id: id, emailVerified: { $ne: false }, platforms: platformId })
+            .select('_id email')
+            .lean()
+            .exec();
+    }
+
+    static async findPlatformOwnerByEmail(email, platformId) {
+        return userModel.findOne({
+            email: String(email).trim().toLowerCase(),
+            emailVerified: { $ne: false },
+            platforms: platformId
+        })
+            .select('_id email')
+            .lean()
+            .exec();
+    }
+
+    static async enablePlatform(email, platformId) {
+        return userModel.findOneAndUpdate(
+            { email: String(email).trim().toLowerCase(), emailVerified: { $ne: false } },
+            { $addToSet: { platforms: platformId } },
+            { new: true, projection: 'email firstname lastname phone role platforms emailVerified' }
+        ).lean();
     }
 
     static async findByLoginId(loginId) {
