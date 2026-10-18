@@ -29,6 +29,10 @@ function normalizeEmail(value) {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function main() {
     if (process.argv.includes('--help')) {
         console.log('Usage: npm run migrate:autohub [-- --apply]');
@@ -50,13 +54,16 @@ async function main() {
         await client.connect();
 
         const usersCollection = client.db(usersDatabaseName).collection('users');
-        const vehiclesCollection = client.db(carshopDatabaseName).collection('usedCars');
+        const vehiclesCollection = client.db(carshopDatabaseName).collection('usedcars');
         const vehicles = await vehiclesCollection.find({}, {
             projection: { _id: 1, email: 1, ownerId: 1 }
         }).toArray();
         const emails = [...new Set(vehicles.map((vehicle) => normalizeEmail(vehicle.email)).filter(Boolean))];
         const users = await usersCollection.find(
-            { email: { $in: emails }, emailVerified: { $ne: false } },
+            {
+                email: { $in: emails.map((email) => new RegExp(`^${escapeRegex(email)}$`, 'i')) },
+                emailVerified: { $ne: false }
+            },
             { projection: { _id: 1, email: 1, emailVerified: 1, platforms: 1 } }
         ).toArray();
         const usersByEmail = new Map(users.map((user) => [normalizeEmail(user.email), user]));
