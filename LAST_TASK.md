@@ -8,29 +8,38 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last completed task:
-- **COMPLETED:** Added Admin-only account listing and Client create, profile update, and delete endpoints.
-- Changes are pushed to `main`; syntax and input-safety checks passed. Account responses exclude credentials, and Client mutations cannot affect Admin accounts or login credentials.
+- **COMPLETED:** Deployed AutoHub routes using the shared Awaaab `users` collection and `users.platforms` membership.
+- CarShop vehicles are owned by the Awaaab user `_id`; the copied-data backfill linked all four listings to one verified Awaaab account without duplicating cars.
+- Visitors can message vehicle owners with hashed guest access tokens; owners read/reply through authenticated inbox routes. Private S3 photo upload/read URLs use owner-scoped keys.
+- MongoDB named databases share the authenticated `MONGODB_URI_USERS` client; App Runner runs Node.js 22.
 
 Files affected:
 - app.js
-- controllers/auth.js
-- controllers/clientBriefs.js
-- controllers/adminUsers.js
-- jwt/jwtManager.js
-- middleware/requireAdmin.js
-- models/clientBrief.js
+- lib/db.js
+- controllers/auto.js
+- controllers/autoUsedCars.js
+- controllers/autoMessages.js
+- controllers/autoPhotos.js
+- middleware/requireAutoUser.js
+- middleware/requirePlatform.js
+- middleware/limitAutoMessages.js
+- middleware/limitAutoConversationStarts.js
 - models/users.js
-- routes/clientBriefs.js
-- routes/adminUsers.js
+- models/autoUsedCar.js
+- models/autoMessage.js
+- models/delivery.js
+- routes/auto.js
+- scripts/migrateAutoHub.js
 - README.md
 - package.json
-- scripts/setupAdmin.js
 
 Current deployment:
 - App Runner service: `BackendNodeJsAppRunner`
 - Region: `us-east-1`
 - Backend: `https://epdqkqaj3f.us-east-1.awsapprunner.com/`
-- JWT secret name: `awaaab/backend/jwt-secret` (value is stored in Secrets Manager)
+- Runtime uses the `awaaab/backend/jwt-secret` and `awaaab/backend/mongodb-uri-users` Secrets Manager secrets, with `AUTOHUB_S3_BUCKET=awaaab-autohub-photos-956951178618`.
+- Commit `62c127f` fixed shared named-connection handshakes; App Runner deployment succeeded on Node.js 22.
 
 Open follow-up:
-- Confirm CI/CD deploys the pushed Admin CRUD API to App Runner.
+- Replace the permissive dynamic Delivery schemas with explicit schemas once its legacy collection contracts are documented.
+- Perform a real authenticated photo upload and visitor/owner messaging exchange with a test client account; only route guards and signing were tested during deployment.
