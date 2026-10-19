@@ -19,6 +19,7 @@ async function start() {
     await DB.createConnection('resume', usersUri, { dbName: process.env.MONGODB_DB_RESUME || 'resume' });
     await DB.createConnection('carshop', usersUri, { dbName: process.env.MONGODB_DB_CARSHOP || 'CarShop' });
     await DB.createConnection('delivery', usersUri, { dbName: process.env.MONGODB_DB_DELIVERY || 'Delivery' });
+    await DB.createConnection('groceries', usersUri, { dbName: process.env.MONGODB_DB_GROCERIES || 'Groceries' });
     console.log('All DB connections are ready');
   } catch (err) {
     console.error('Failed to connect to MongoDB', err);
@@ -55,6 +56,7 @@ async function start() {
   const mainMainRouter = require('./routes/mainMain');
   var indexRouter = require('./routes/index');
   const autoRouter = require('./routes/auto');
+  const groceriesRouter = require('./routes/groceries');
   const clientBriefsRouter = require('./routes/clientBriefs');
   const adminUsersRouter = require('./routes/adminUsers');
 
@@ -65,6 +67,7 @@ async function start() {
   app.use('/projects', projectRouter);
   app.use('/mainMain', mainMainRouter);
   app.use('/auto',autoRouter)
+  app.use('/groceries', groceriesRouter);
   app.use('/client-briefs', clientBriefsRouter);
   app.use('/admin/users', adminUsersRouter);
 

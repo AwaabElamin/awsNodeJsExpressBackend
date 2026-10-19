@@ -3,7 +3,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const usersModel = require('../models/users');
-const { sendVerificationEmail } = require('../lib/mailer');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../lib/mailer');
 exports.create = async (req, res) => {
     // Input validation
     if (!req.body || !req.body.user) {
@@ -95,38 +95,6 @@ exports.getAll = async (req, res) => {
     const users = await usersModel.findAll();
     res.send(users);
 }
-exports.update = async (req, res) => {
-    // Validate request
-    if (!req.body || !req.body.email) {
-        return res.status(400).json({ status: 'fail', message: 'Email is required' });
-    }
-
-    const { email, password, phone, firstname, lastname } = req.body;
-
-    // Require at least one field to update
-    if (!password && !phone && !firstname && !lastname) {
-        return res.status(400).json({ status: 'fail', message: 'At least one field is required to update' });
-    }
-
-    const user = {};
-    try {
-        if (password) user.password = bcrypt.hashSync(password, 8);
-        if (phone) user.phone = phone;
-        if (firstname) user.firstname = firstname;
-        if (lastname) user.lastname = lastname;
-    } catch (error) {
-        console.log('Error preparing update payload', error);
-        return res.status(400).json({ status: 'error', data: error });
-    }
-
-    try {
-        const updatedUser = await usersModel.findAndUpdate(email, user);
-        return res.json(updatedUser);
-    } catch (error) {
-        console.log('Route users update error', error);
-        return res.status(500).json({ status: 'error', data: error });
-    }
-}
 exports.delete = async (req, res) => {
     const id = req.query.id;
     const deletedUser = await usersModel.findAndDelete(id);
@@ -193,5 +161,75 @@ exports.verifyEmail = async (req, res) => {
         return res.json({ status: 'success', message: 'Email verified. You can now sign in.', data: { email: verifiedUser.email } });
     } catch (error) {
         return res.status(500).json({ status: 'error', message: 'We could not verify this email address.' });
+    }
+};
+
+exports.requestPasswordReset = async (req, res) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ status: 'fail', message: 'A valid email address is required.' });
+    }
+
+    const response = {
+        status: 'success',
+        message: 'If an account exists for that email, a password reset link has been sent.'
+    };
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const ttlMinutes = Math.min(Math.max(Number(process.env.PASSWORD_RESET_TTL_MINUTES) || 30, 5), 120);
+
+    try {
+        const user = await usersModel.setPasswordResetToken(
+            email,
+            tokenHash,
+            new Date(Date.now() + ttlMinutes * 60 * 1000)
+        );
+        if (!user) return res.json(response);
+
+        const frontendUrl = String(process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+        const resetUrl = `${frontendUrl}/login/reset-password?token=${encodeURIComponent(token)}`;
+        try {
+            await sendPasswordResetEmail({
+                email: user.email,
+                firstName: user.firstname || 'there',
+                resetUrl
+            });
+        } catch (mailError) {
+            await usersModel.clearPasswordResetToken(tokenHash);
+            console.error('Password reset email delivery failed', {
+                code: mailError && mailError.code,
+                responseCode: mailError && mailError.responseCode
+            });
+        }
+        return res.json(response);
+    } catch (error) {
+        console.error('Password reset request failed', { name: error && error.name });
+        return res.json(response);
+    }
+};
+
+exports.resetPassword = async (req, res) => {
+    const token = String(req.body?.token || '').trim();
+    const password = req.body?.password;
+    if (!/^[a-f\d]{64}$/i.test(token)) {
+        return res.status(400).json({ status: 'fail', message: 'This reset link is invalid or expired.' });
+    }
+    if (typeof password !== 'string' || password.length < 6 || password.length > 15) {
+        return res.status(400).json({ status: 'fail', message: 'Password must be 6 to 15 characters.' });
+    }
+
+    try {
+        const passwordHash = await bcrypt.hash(password, 10);
+        const user = await usersModel.consumePasswordResetToken(
+            crypto.createHash('sha256').update(token).digest('hex'),
+            passwordHash
+        );
+        if (!user) {
+            return res.status(400).json({ status: 'fail', message: 'This reset link is invalid or expired.' });
+        }
+        return res.json({ status: 'success', message: 'Your password has been reset. You can now sign in.' });
+    } catch (error) {
+        console.error('Password reset failed', { name: error && error.name });
+        return res.status(500).json({ status: 'error', message: 'We could not reset your password. Please try again.' });
     }
 };

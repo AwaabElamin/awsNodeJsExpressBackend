@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema({
     emailVerified: { type: Boolean, default: false },
     verificationTokenHash: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null },
+    passwordResetTokenHash: { type: String, default: null },
+    passwordResetTokenExpiresAt: { type: Date, default: null },
     educations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Education' }],
     experiences: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }]
 }, { timestamps: true });
@@ -164,6 +166,36 @@ class UserCollection {
         return userModel.findByIdAndUpdate(
             id,
             { $set: { emailVerified: true }, $unset: { verificationTokenHash: 1, verificationTokenExpiresAt: 1 } },
+            { new: true }
+        );
+    }
+
+    static async setPasswordResetToken(email, tokenHash, expiresAt) {
+        return userModel.findOneAndUpdate(
+            { email, emailVerified: { $ne: false } },
+            { $set: { passwordResetTokenHash: tokenHash, passwordResetTokenExpiresAt: expiresAt } },
+            { new: true, projection: 'email firstname' }
+        ).lean();
+    }
+
+    static async clearPasswordResetToken(tokenHash) {
+        return userModel.updateOne(
+            { passwordResetTokenHash: tokenHash },
+            { $unset: { passwordResetTokenHash: 1, passwordResetTokenExpiresAt: 1 } }
+        );
+    }
+
+    static async consumePasswordResetToken(tokenHash, passwordHash, now = new Date()) {
+        return userModel.findOneAndUpdate(
+            {
+                passwordResetTokenHash: tokenHash,
+                passwordResetTokenExpiresAt: { $gt: now },
+                emailVerified: { $ne: false }
+            },
+            {
+                $set: { password: passwordHash },
+                $unset: { passwordResetTokenHash: 1, passwordResetTokenExpiresAt: 1 }
+            },
             { new: true }
         );
     }
