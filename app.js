@@ -9,19 +9,16 @@ const DB = require('./lib/db');
 async function start() {
   // Connect to databases before requiring route handlers/models
   try {
-    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/users?retryWrites=true&w=majority';
-    const deliveryUri = process.env.MONGODB_URI_DELIVERY || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/Delivery?retryWrites=true&w=majority';
-    const resumeUri = process.env.MONGODB_URI_RESUME || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/resume?retryWrites=true&w=majority';
-    const carshopUri = process.env.MONGODB_URI_CARSHOP || 'mongodb+srv://root:123@cluster0.wpzy5.mongodb.net/CarShop?retryWrites=true&w=majority';
+    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI;
 
     console.log('Connecting to default (users) MongoDB...');
     await DB.connect(usersUri);
     console.log('Connected to users DB');
 
     console.log('Creating named connections for resume, carshop and delivery...');
-    await DB.createConnection('resume', resumeUri);
-    await DB.createConnection('carshop', carshopUri);
-    await DB.createConnection('delivery', deliveryUri);
+    await DB.createConnection('resume', usersUri, { dbName: process.env.MONGODB_DB_RESUME || 'resume' });
+    await DB.createConnection('carshop', usersUri, { dbName: process.env.MONGODB_DB_CARSHOP || 'CarShop' });
+    await DB.createConnection('delivery', usersUri, { dbName: process.env.MONGODB_DB_DELIVERY || 'Delivery' });
     console.log('All DB connections are ready');
   } catch (err) {
     console.error('Failed to connect to MongoDB', err);
@@ -31,6 +28,7 @@ async function start() {
   // Now set up the app (require routes after DB connections ready)
   var path = require('path');
   var app = express();
+  app.set('trust proxy', 1);
 
   // view engine setup
   app.set('views', path.join(__dirname, 'views'));
@@ -43,6 +41,10 @@ async function start() {
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(cors());
 
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'awsNodeJsExpressBackend' });
+  });
+
   // require routers after DB is set up so models can read connections
 
   const authorizeRouter = require('./routes/auth');
@@ -53,6 +55,8 @@ async function start() {
   const mainMainRouter = require('./routes/mainMain');
   var indexRouter = require('./routes/index');
   const autoRouter = require('./routes/auto');
+  const clientBriefsRouter = require('./routes/clientBriefs');
+  const adminUsersRouter = require('./routes/adminUsers');
 
   app.use('/', authorizeRouter);
   app.use('/users', usersRouter);
@@ -61,6 +65,8 @@ async function start() {
   app.use('/projects', projectRouter);
   app.use('/mainMain', mainMainRouter);
   app.use('/auto',autoRouter)
+  app.use('/client-briefs', clientBriefsRouter);
+  app.use('/admin/users', adminUsersRouter);
 
   // error handler
   app.use(function (err, req, res, next) {

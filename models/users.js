@@ -1,18 +1,22 @@
-
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
     email: { type: String, unique: true },
+    username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     password: { type: String },
     phone: { type: String },
     firstname: { type: String },
     lastname: { type: String },
+    role: { type: String, enum: ['Client', 'Admin'], default: 'Client' },
+    platforms: { type: [String], default: [] },
+    emailVerified: { type: Boolean, default: false },
+    verificationTokenHash: { type: String, default: null },
+    verificationTokenExpiresAt: { type: Date, default: null },
     educations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Education' }],
     experiences: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }]
 }, { timestamps: true });
 
 const userModel = mongoose.model('User', userSchema);
-
 class UserCollection {
     // Add an education ObjectId to a user
     static async addEducation(userId, educationId) {
@@ -49,6 +53,24 @@ class UserCollection {
         const user = await userModel.findById(id);
         console.log('findById:- ', user);
         return user;
+    }
+    static async listAllForAdmin() {
+        return userModel.find({})
+            .select('email username firstname lastname phone role platforms emailVerified createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+    }
+    static async updateClientForAdmin(id, fields) {
+        return userModel.findOneAndUpdate(
+            { _id: id, role: 'Client' },
+            { $set: fields },
+            { new: true, runValidators: true, projection: 'email username firstname lastname phone role platforms emailVerified createdAt' }
+        ).lean();
+    }
+    static async deleteClientForAdmin(id) {
+        return userModel.findOneAndDelete({ _id: id, role: 'Client' })
+            .select('_id email')
+            .lean();
     }
     static async create(user) {
         const new_user = new userModel(user);
@@ -96,6 +118,54 @@ class UserCollection {
         } catch (error) {
             throw error;
         }
+    }
+
+    static async findPlatformOwnerById(id, platformId) {
+        return userModel.findOne({ _id: id, emailVerified: { $ne: false }, platforms: platformId })
+            .select('_id email')
+            .lean()
+            .exec();
+    }
+
+    static async findPlatformOwnerByEmail(email, platformId) {
+        return userModel.findOne({
+            email: String(email).trim().toLowerCase(),
+            emailVerified: { $ne: false },
+            platforms: platformId
+        })
+            .select('_id email')
+            .lean()
+            .exec();
+    }
+
+    static async enablePlatform(email, platformId) {
+        return userModel.findOneAndUpdate(
+            { email: String(email).trim().toLowerCase(), emailVerified: { $ne: false } },
+            { $addToSet: { platforms: platformId } },
+            { new: true, projection: 'email firstname lastname phone role platforms emailVerified' }
+        ).lean();
+    }
+
+    static async findByLoginId(loginId) {
+        const normalizedId = String(loginId || '').trim();
+        return userModel.findOne({
+            $or: [
+                { email: normalizedId.toLowerCase() },
+                { username: normalizedId.toLowerCase() }
+            ]
+        });
+    }
+
+    static async findByVerificationToken(tokenHash) {
+        return userModel.findOne({ verificationTokenHash: tokenHash, emailVerified: false });
+    }
+
+    static async markEmailVerified(id) {
+        return userModel.findByIdAndUpdate(
+            id,
+            { $set: { emailVerified: true }, $unset: { verificationTokenHash: 1, verificationTokenExpiresAt: 1 } },
+            { new: true }
+        );
     }
 }
 
