@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     password: { type: String },
     phone: { type: String },
+    profilePhoto: { type: String, default: '' },
     firstname: { type: String },
     lastname: { type: String },
     role: { type: String, enum: ['Client', 'Admin'], default: 'Client' },
@@ -168,6 +169,14 @@ class UserCollection {
             { $set: { emailVerified: true }, $unset: { verificationTokenHash: 1, verificationTokenExpiresAt: 1 } },
             { new: true }
         );
+    }
+
+    static async updateProfile(id, fields) {
+        return userModel.findByIdAndUpdate(
+            id,
+            { $set: fields },
+            { new: true, runValidators: true, projection: 'email firstname lastname phone profilePhoto' }
+        ).lean().exec();
     }
 
     static async setPasswordResetToken(email, tokenHash, expiresAt) {

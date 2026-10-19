@@ -24,6 +24,35 @@ npm start
 
 The container exposes port `3000` and provides `GET /health` for ECS health checks.
 
+## Isolated profile testing
+
+These commands run the profile editor against a local-only MongoDB volume. The local backend launcher refuses MongoDB URIs that are not `127.0.0.1:27018/awaab_local_users`; it does not load the production `.env`, SMTP is disabled, and photo uploads are disabled so no AWS bucket is touched.
+
+1. Start the dedicated MongoDB container from this directory:
+
+```bash
+docker compose -f docker-compose.local.yml up -d
+```
+
+2. Seed the local test client and start the backend in separate terminals:
+
+```bash
+npm run seed:local-profile
+npm run start:local
+```
+
+The local API listens on `http://127.0.0.1:3001`. The ignored `.env.local` is created for this workspace from `.env.local.example`; its test account is `profile-test@example.invalid` with password `LocalTest26!`.
+
+3. In `ReactFrontAwaaabLLC`, `.env.development.local` points to the local API. From that directory, start Vite with:
+
+```bash
+node ./node_modules/vite/bin/vite.js . --config ./vite.config.ts --host 127.0.0.1 --port 5173
+```
+
+Open `http://127.0.0.1:5173/user` and sign in with the local test account to edit the profile. Do not change the local frontend API URL to production for this test.
+
+The local Mongo data is stored in the Docker volume `awsnodejsexpressbackend_awaab_profile_local_mongo`. Stop the backend with Ctrl+C; stop Mongo with `docker compose -f docker-compose.local.yml down` (this preserves the volume). Profile-photo upload intentionally returns HTTP 501 in local mode.
+
 What changed
 - Centralized MongoDB connection in `lib/db.js` and established the connection during server startup in `bin/www`.
 - Removed per-method `mongoose.connect()` calls in `models/users.js` and adjusted controllers to assume an active DB connection.

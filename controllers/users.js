@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const usersModel = require('../models/users');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../lib/mailer');
+const { createPhotoUpload, getPhotoUrl } = require('../lib/autoHubS3');
 exports.create = async (req, res) => {
     // Input validation
     if (!req.body || !req.body.user) {
@@ -131,6 +132,7 @@ exports.getUserByEmail = async(req,res) =>{
                     phone:userFound.phone,
                     firstname:userFound.firstname,
                     lastname:userFound.lastname,
+                    profilePhoto: await getPhotoUrl(userFound.profilePhoto, userFound._id),
                     platforms:userFound.platforms || [],
                     password:""
                 }
@@ -143,6 +145,80 @@ exports.getUserByEmail = async(req,res) =>{
         return res.status(500).json({ status: "error", data: error })
     }
 }
+
+exports.createProfilePhotoUploadUrl = async (req, res, next) => {
+    if (process.env.LOCAL_PROFILE_PHOTO_UPLOAD_DISABLED === 'true') {
+        return res.status(501).json({ status: 'fail', message: 'Profile photo uploads are disabled in the isolated local backend.' });
+    }
+    try {
+        const email = String(req.user?.email || '').trim().toLowerCase();
+        const user = await usersModel.findByEmail(email);
+        if (!user) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+
+        const { contentType, size } = req.body || {};
+        const upload = await createPhotoUpload(user._id, contentType, size);
+        return res.json({ status: 'success', data: upload });
+    } catch (error) {
+        if (error.message && /Choose a JPEG/.test(error.message)) {
+            return res.status(400).json({ status: 'fail', message: error.message });
+        }
+        return next(error);
+    }
+};
+
+exports.updateProfile = async (req, res, next) => {
+    try {
+        const email = String(req.user?.email || '').trim().toLowerCase();
+        const user = await usersModel.findByEmail(email);
+        if (!user) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+
+        const body = req.body || {};
+        const fields = {};
+        for (const field of ['firstname', 'lastname']) {
+            if (Object.prototype.hasOwnProperty.call(body, field)) {
+                if (typeof body[field] !== 'string' || body[field].trim().length < 1 || body[field].trim().length > 80) {
+                    return res.status(400).json({ status: 'fail', message: `${field} must be between 1 and 80 characters.` });
+                }
+                fields[field] = body[field].trim();
+            }
+        }
+        if (Object.prototype.hasOwnProperty.call(body, 'phone')) {
+            if (typeof body.phone !== 'string' || body.phone.trim().length > 40) {
+                return res.status(400).json({ status: 'fail', message: 'Phone number must be 40 characters or fewer.' });
+            }
+            fields.phone = body.phone.trim();
+        }
+        if (Object.prototype.hasOwnProperty.call(body, 'profilePhoto')) {
+            if (typeof body.profilePhoto !== 'string' || body.profilePhoto.length > 180) {
+                return res.status(400).json({ status: 'fail', message: 'Profile photo is invalid.' });
+            }
+            const photoKey = body.profilePhoto.trim();
+            const ownerPrefix = `autohub/${String(user._id)}/`;
+            if (photoKey && !photoKey.startsWith(ownerPrefix)) {
+                return res.status(400).json({ status: 'fail', message: 'Profile photo must be uploaded to your account.' });
+            }
+            fields.profilePhoto = photoKey;
+        }
+        if (Object.keys(fields).length === 0) {
+            return res.status(400).json({ status: 'fail', message: 'No profile changes were provided.' });
+        }
+
+        const updatedUser = await usersModel.updateProfile(user._id, fields);
+        if (!updatedUser) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+        return res.json({
+            status: 'success',
+            data: {
+                email: updatedUser.email,
+                firstname: updatedUser.firstname || '',
+                lastname: updatedUser.lastname || '',
+                phone: updatedUser.phone || '',
+                profilePhoto: await getPhotoUrl(updatedUser.profilePhoto, updatedUser._id)
+            }
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
 
 exports.verifyEmail = async (req, res) => {
     const token = String(req.query.token || '').trim();
