@@ -72,6 +72,16 @@ What changed
 - The Admin password is never stored in source code. Use a strong password and do not print it in logs.
 - Configure `JWT_SECRET` as an App Runner runtime secret referencing AWS Secrets Manager, with an instance role limited to `secretsmanager:GetSecretValue` for that secret. Existing sessions must sign in again after the JWT signing key changes.
 
+## Property management
+
+- Property-management features are integrated into the Awaab LLC frontend at `/property-management`; the API is mounted at `/property-management/api`.
+- Configure `MONGODB_DB_PROPERTY_MANAGEMENT` (defaults to `PropertyManagement`) to keep properties, users, leases, maintenance, accounting, and visitor inquiries in their own database.
+- Public visitors can browse vacant listings and send inquiries from the listing or contact page. Awaab Admins can review visitor messages in the property dashboard.
+- Property admin access uses the existing Awaab account and Admin role. Only Awaab Admins can list, create, update, or delete property-management users; property accounts cannot be assigned the admin role.
+- Owners, tenants, managers, and contractors sign in using accounts created by an Awaab Admin. Uploaded property images are served below `/property-management/uploads`.
+- Existing property records are not copied automatically. To migrate, set `SOURCE_MONGODB_URI` (including the source database name) and `MONGODB_URI_USERS`, then run `npm run migrate:property` for a dry run and `node scripts/migratePropertyManagement.js --apply` to copy (npm can swallow `--apply` in PowerShell). It never overwrites existing documents, skips the old property-admin users (replaced by the Awaab Admin), and is safe to re-run. Copy the source app's `uploads/` files into this backend's `uploads/` folder so property images keep working.
+- The WhatsApp send endpoint (`POST /property-management/api/whatsapp/send`) is Awaab-Admin-only and only accepts Meta Graph `https://graph.facebook.com/vX/<id>/messages` URLs.
+
 ## AutoHub
 
 - AutoHub is mounted under `/auto`; vehicle data uses the copied `CarShop.usedCars` collection, while identity and platform access use the shared Awaaab `users` collection (`platforms` records enabled workspaces).

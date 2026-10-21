@@ -7,7 +7,8 @@
     "start:local": "node scripts/startLocal.js",
     "seed:local-profile": "node scripts/seedLocalProfileUser.js",
     "setup:admin": "node scripts/setupAdmin.js",
-    "migrate:autohub": "node scripts/migrateAutoHub.js"
+    "migrate:autohub": "node scripts/migrateAutoHub.js",
+    "migrate:property": "node scripts/migratePropertyManagement.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
@@ -22,6 +23,7 @@
     "http-errors": "~1.6.3",
     "jade": "^1.9.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.4.0",
     "mongodb": "^5.7.0",
     "mongoose": "^7.4.2",
     "morgan": "~1.9.1",

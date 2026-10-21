@@ -20,6 +20,22 @@ async function start() {
     await DB.createConnection('carshop', usersUri, { dbName: process.env.MONGODB_DB_CARSHOP || 'CarShop' });
     await DB.createConnection('delivery', usersUri, { dbName: process.env.MONGODB_DB_DELIVERY || 'Delivery' });
     await DB.createConnection('groceries', usersUri, { dbName: process.env.MONGODB_DB_GROCERIES || 'Groceries' });
+    await DB.createConnection('property-management', usersUri, {
+      dbName: process.env.MONGODB_DB_PROPERTY_MANAGEMENT || 'PropertyManagement'
+    });
+    const PropertyAccount = require('./propertyManagement/models/Account');
+    if (await PropertyAccount.countDocuments() === 0) {
+      await PropertyAccount.create([
+        { code: '1010', name: 'Cash', type: 'asset', is_system: true },
+        { code: '1020', name: 'Bank', type: 'asset', is_system: true },
+        { code: '2010', name: 'Owner payable', type: 'liability', is_system: true },
+        { code: '2020', name: 'Security deposits', type: 'liability', is_system: true },
+        { code: '2030', name: 'VAT payable', type: 'liability', is_system: true },
+        { code: '4010', name: 'Commission revenue', type: 'revenue', is_system: true },
+        { code: '4020', name: 'Brokerage revenue', type: 'revenue', is_system: true },
+        { code: '5010', name: 'Maintenance expenses', type: 'expense', is_system: true }
+      ]);
+    }
     console.log('All DB connections are ready');
   } catch (err) {
     console.error('Failed to connect to MongoDB', err);
@@ -42,6 +58,9 @@ async function start() {
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(cors());
 
+  const uploadsDir = path.join(__dirname, 'uploads');
+  require('fs').mkdirSync(uploadsDir, { recursive: true });
+
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', service: 'awsNodeJsExpressBackend' });
   });
@@ -59,6 +78,7 @@ async function start() {
   const groceriesRouter = require('./routes/groceries');
   const clientBriefsRouter = require('./routes/clientBriefs');
   const adminUsersRouter = require('./routes/adminUsers');
+  const propertyManagementRouter = require('./propertyManagement/routes');
 
   app.use('/', authorizeRouter);
   app.use('/users', usersRouter);
@@ -70,6 +90,11 @@ async function start() {
   app.use('/groceries', groceriesRouter);
   app.use('/client-briefs', clientBriefsRouter);
   app.use('/admin/users', adminUsersRouter);
+  app.use('/property-management/api', propertyManagementRouter);
+  app.use(
+    '/property-management/uploads',
+    express.static(path.join(__dirname, 'uploads'))
+  );
 
   // error handler
   app.use(function (err, req, res, next) {

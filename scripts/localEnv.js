@@ -30,6 +30,7 @@ module.exports = function configureLocalEnvironment() {
     process.env.MONGODB_DB_CARSHOP = 'awaab_local_carshop';
     process.env.MONGODB_DB_DELIVERY = 'awaab_local_delivery';
     process.env.MONGODB_DB_GROCERIES = 'awaab_local_groceries';
+    process.env.MONGODB_DB_PROPERTY_MANAGEMENT = 'awaab_local_property_management';
     process.env.PORT = '3001';
     process.env.FRONTEND_URL = 'http://127.0.0.1:5173';
     process.env.JWT_SECRET = process.env.LOCAL_JWT_SECRET || crypto.randomBytes(32).toString('hex');
