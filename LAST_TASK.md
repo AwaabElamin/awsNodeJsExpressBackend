@@ -40,6 +40,11 @@ Current deployment:
 - Runtime uses the `awaaab/backend/jwt-secret` and `awaaab/backend/mongodb-uri-users` Secrets Manager secrets, with `AUTOHUB_S3_BUCKET=awaaab-autohub-photos-956951178618`.
 - Commit `62c127f` fixed shared named-connection handshakes; App Runner deployment succeeded on Node.js 22.
 
+Local note (2026-10-21):
+- Property management was integrated and pushed to `dev` (backend `5fd2075`, frontend `90c092e`).
+- `scripts/seedSampleProperties.js` is kept local and uncommitted. It inserts 4 sample vacant properties ("Sample - ...") into the `PropertyManagement` DB. It has already been applied to Atlas, is dry-run by default (`--apply` to write) and is safe to re-run.
+- To remove the samples, delete the "Sample - ..." properties from the admin Properties screen.
+
 Open follow-up:
 - Replace the permissive dynamic Delivery schemas with explicit schemas once its legacy collection contracts are documented.
 - Perform a real authenticated photo upload and visitor/owner messaging exchange with a test client account; only route guards and signing were tested during deployment.
