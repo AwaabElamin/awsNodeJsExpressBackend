@@ -30,6 +30,87 @@ Creating or editing a vehicle requires `country` and `state` (state, region, or
 emirate), each a non-blank string up to 100 characters. Both are returned in public
 and owner listings. Existing listings without a location must supply one on edit.
 Sample locations are demonstration data, not verified vehicle locations.
+Listing titles/descriptions no longer display the word "Sample". The sample
+seeders retain their filenames but recognize the existing unlabeled listings
+without duplicating them. Removing the label does not verify availability.
+
+## PayPal marketplace checkout (Sandbox only)
+
+This is a **disabled-by-default Sandbox integration**, not a live payment launch.
+It requires an approved PayPal platform/partner app and seller onboarding.
+Do not use a seller's Awaaab profile email as an assumed PayPal receiving account.
+Only `api-m.sandbox.paypal.com` is used; there is no live-mode switch.
+
+### Platform setup
+
+1. Obtain PayPal multiparty/platform access for your business and create the
+   corresponding Sandbox app. Ordinary REST app credentials alone do not grant
+   third-party seller permissions.
+2. Configure `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
+   `PAYPAL_PARTNER_MERCHANT_ID`, and `PAYPAL_PARTNER_ATTRIBUTION_ID` in server-side
+   environment/secrets, never frontend source, chat, or Git.
+3. Set `PAYPAL_FRONTEND_URL` to the frontend origin (HTTPS, or localhost/127.0.0.1
+   HTTP for local tests). Return/cancel paths are `/payments/return` and
+   `/payments/cancel`. No credentials are needed in Vite.
+4. Register a reachable HTTPS webhook on the same Sandbox app:
+   `https://<backend-host>/payments/webhook`. Subscribe to
+   `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.PENDING`,
+   `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, and
+   `PAYMENT.CAPTURE.REVERSED`; set the returned `PAYPAL_WEBHOOK_ID`.
+   PayPal cannot reach a loopback webhook; configure a secure test deployment
+   before enabling the end-to-end Sandbox flow.
+5. Set `PAYPAL_ENABLED=true` only after those settings and platform approval are
+   ready. Until then the API rejects checkout and seller onboarding with HTTP 503.
+   Public configuration responses contain only enabled/environment/currency.
+
+### Seller and buyer flow
+
+- Clients choose **Connect PayPal Sandbox** in **My account**, explicitly consent
+  to data sharing, finish PayPal-hosted onboarding, then choose **Check seller
+  connection**. Tracking IDs are generated server-side, not taken from callback
+  query parameters. The backend verifies merchant identity, confirmed email,
+  receivable payments, active Express Checkout, and this app's third-party
+  payment permission. It checks these again for each new checkout.
+- Visitors/Clients pay for one grocery unit/listing or a vehicle's full USD price
+  from the marketplace; no basket is required. AutoHub add/edit includes a full
+  price input. Existing cars remain unpriced until their seller sets a price;
+  no vehicle prices were invented or backfilled.
+- Prices are read from MongoDB, converted to integer cents, and snapshotted in
+  a payment record. Client-submitted amounts/payees are ignored. The supported
+  positive price range is USD 0.01-1,000,000, with at most two decimal places.
+  PayPal's actual account/transaction limits can be lower.
+- Approval occurs on PayPal's hosted Sandbox page. After returning, the buyer
+  chooses **Complete and verify payment**. The backend captures only that buyer's
+  order, retrieves it from PayPal, and verifies its ID, intent, references,
+  recipient, currency, and captured amount. Approval/cancel URL parameters alone
+  never mark a payment completed. Pending/failed captures are not displayed as paid.
+- Both parties see their own purchases/sales and can recheck status from My
+  account. If sign-in expires on return, sign in again and use payment history's
+  **Check payment status** to complete/check the approved order.
+- Payment records and seller connections live in the shared users MongoDB
+  database (`MarketplacePayment` and `PaypalSeller` models). Unique indexes are
+  ready before the server listens. Account-scoped request keys and PayPal
+  create/capture request IDs make retries idempotent; unresolved creates older
+  than five hours require support review rather than risking a duplicate charge.
+- Webhooks are verified with PayPal before any update. Captures are reconciled
+  against PayPal, while refunds/reversals are flagged and cannot be downgraded
+  to paid by a delayed capture. `REFUNDED` also flags partial refunds for review.
+
+This Sandbox foundation does **not** implement fulfilment, inventory/vehicle
+reservation, shipping, tax, platform fees, refund initiation, or dispute
+management. No shipping/tax is added to the listing price; arrange fulfilment
+with the seller. Refunds/disputes must be managed in PayPal. These business flows
+and real PayPal limits require validation before any future live-payment work.
+No real charge or PayPal credential exchange has been performed in this workspace.
+
+Validation: `node --test tests/paypal.test.js tests/paypalTransport.test.js`.
+For an opt-in MongoDB persistence/index check, set `PAYMENT_DB_TEST=1` and run
+`node --test tests/paymentPersistence.test.js`. It creates random test seller/
+payment records and deletes those exact records in `finally`; it never calls
+PayPal or modifies real accounts/listings.
+
+References: [PayPal platform checkout](https://developer.paypal.com/platforms/checkout/standard/integrate)
+and [seller onboarding before payment](https://developer.paypal.com/platforms/seller-onboarding/before-payment).
 
 ## Stored marketplace chat
 
@@ -138,14 +219,18 @@ What changed
   enabling a grocery shop. The shop heading uses their name plus `WorkShop`.
 - Grocery data uses `MONGODB_DB_GROCERIES` (default `Groceries`) on the shared
   configured MongoDB connection. The loopback-only seller lookup on port 3002
-  now also supports `/groceries/seller-details`; public API responses still omit
-  seller contact details. Profile enrichment is local-development-only.
+  also supports `/groceries/seller-details` for older local clients. Grocery
+  public listings now include `sellerName` and `sellerEmail` from the actual
+  verified grocery seller profile, with owner-ID matching and legacy email
+  fallback. Owner IDs and raw stored listing emails remain excluded. The grocery
+  frontend no longer depends on the loopback lookup, including production builds.
 - `node scripts/seedSampleGroceries.js --email=<existing verified Client email>`
-  previews two sample products. Add `--apply` to transactionally insert missing
+  previews twelve sample products. Add `--apply` to transactionally insert missing
   samples and enable that seller's grocery membership. It is rerunnable and
-  never reassigns or overwrites other products. The database was empty during
-  this local setup, so two clearly labeled samples were created for Hashim:
-  Riyadh, Saudi Arabia and Dubai, United Arab Emirates.
+  never reassigns or overwrites other products. Hashim now has twelve products:
+  the initial chips and beef, plus apples, bananas, oranges, tomatoes, carrots,
+  milk, eggs, bread, rice, and coffee. Each has a Saudi Arabia or UAE location.
+  Visible titles do not include a Sample label.
 - Local testing uses the frontend on port 5173 and updated backend on port 3001
   against the real database. Application changes have not been publicly deployed.
   Registration confirmation still requires configured SMTP.

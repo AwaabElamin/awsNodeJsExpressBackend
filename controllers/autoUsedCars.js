@@ -1,5 +1,6 @@
 const usedCars = require('../models/autoUsedCar');
 const { getPhotoUrl } = require('../lib/autoHubS3');
+const { money } = require('../lib/paypal');
 
 async function formatCar(car, includePhotoKeys = false) {
     const ownerId = car.ownerId;
@@ -33,6 +34,13 @@ function validateLocation(body, res) {
             message: 'Country and state/region are required and must each contain 1 to 100 characters.'
         });
         return false;
+    }
+    if (body.price !== undefined) {
+        try { money(body.price); }
+        catch (error) {
+            res.status(400).json({ status: 'fail', message: error.message });
+            return false;
+        }
     }
     return true;
 }

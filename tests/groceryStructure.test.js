@@ -8,9 +8,25 @@ let created;
 let savedProduct;
 let inboxOwner;
 let appended;
-mock('../models/users', { findPlatformOwnerById: async () => ({ _id: 'seller' }) });
+mock('../models/users', {
+    findPlatformOwnerById: async () => ({ _id: 'seller' }),
+    getPublicSellerProfiles: async (ids, emails, platform) => {
+        assert.equal(platform, 'groceries');
+        assert.deepEqual(ids, ['seller']);
+        assert.ok(emails.includes('legacy@example.invalid'));
+        return [
+            { _id: 'seller', firstname: 'Actual', lastname: 'Seller', email: 'actual@example.invalid' },
+            { _id: 'legacy', firstname: 'Legacy', lastname: 'Seller', email: 'legacy@example.invalid' }
+        ];
+    }
+});
 mock('../models/groceryProduct', {
     getContactTarget: async () => ({ _id: '66df353d38a9a756b1b85ec4', title: 'Sample rice', ownerId: 'seller' }),
+    getPublicProducts: async () => [
+        { _id: 'one', title: 'Rice', ownerId: 'seller', email: 'outdated@example.invalid' },
+        { _id: 'two', title: 'Beans', email: 'legacy@example.invalid' },
+        { _id: 'three', title: 'Missing seller' }
+    ],
     addProduct: async (data, ownerId) => { savedProduct = { ...data, ownerId }; return savedProduct; }
 });
 mock('../models/groceryMessage', {
@@ -29,6 +45,20 @@ const groceries = require('../controllers/groceries');
 function response() {
     return { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
 }
+test('public grocery listings show actual seller profiles without exposing owner IDs or stored emails', async () => {
+    const res = response();
+    await groceries.listPublic({}, res, assert.ifError);
+    const [owned, legacy, missing] = res.body.data;
+    assert.equal(owned.sellerName, 'Actual Seller');
+    assert.equal(owned.sellerEmail, 'actual@example.invalid');
+    assert.equal(legacy.sellerName, 'Legacy Seller');
+    assert.equal(missing.sellerName, '');
+    assert.equal(missing.sellerEmail, '');
+    for (const product of res.body.data) {
+        assert.equal('ownerId' in product, false);
+        assert.equal('email' in product, false);
+    }
+});
 test('anonymous grocery inquiry is rejected', async () => {
     const res = response();
     await messages.create({}, res, assert.ifError);

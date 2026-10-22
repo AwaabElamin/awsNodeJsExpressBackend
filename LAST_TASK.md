@@ -18,6 +18,25 @@ Local note (2026-10-22):
 - Added `scripts/startLocalAutoSellerInfo.js` and `start:local-autohub-sellers` for a loopback-only, read-only local seller profile lookup. It maps listing owner IDs/emails to the shared users database and never writes to MongoDB.
 
 Last completed task:
+- **PAYPAL SETUP PAUSED / SAVING TO DEV:** User created Awaaab LLC's separate PayPal Business account and reached Developer > Apps & Credentials with a "Default Application". App type/capabilities and multiparty approval are unverified. No actual PayPal credentials configured; Hashim onboarding not started. Payments stay disabled.
+- Resume by selecting Sandbox, inspecting Default Application type/capabilities and verifying platform permissions. Then configure approved partner credentials in server-side secrets and a reachable HTTPS webhook, enable Sandbox, and onboard Hashim. Local frontend is supported; webhook requires a secure tunnel or test deployment. Do not share secrets or enable live payments.
+- Saving pending backend marketplace and disabled Sandbox integration changes to dev. Latest validation: 41 targeted tests passed, including real-DB temporary payment persistence with exact cleanup; frontend build/lint passed. Pre-existing untracked scripts/seedSampleProperties.js is excluded, as are actual environment secrets. No main merge or deployment requested.
+
+Previous completed task:
+- **COMPLETED LOCALLY, DISABLED PENDING PAYPAL SETUP:** Added Sandbox-only seller-direct PayPal platform integration: Client seller onboarding/verification, authoritative listing-price orders, buyer-only idempotent capture, account-scoped history/refresh, and signature-verified webhooks. Seller/payment models persist in Awaaab's users database. Payment confirmation validates provider order identity, amount, currency, seller and capture status; approval/pending/cancel return are not completion.
+- Added optional full USD vehicle price persistence/validation while preserving legacy API records without prices; grocery/car checkout prices come from MongoDB. No existing car prices invented. Disabled by default; actual credentials were not added. README and environment example document approved partner credentials, HTTPS webhook and onboarding, testing, and Sandbox-only limitations.
+- Validation includes real-database seller/payment persistence and idempotency with temporary-record cleanup, mocked provider/transport tests, regression tests, local health and disabled configuration, and anonymous endpoint rejection. Updated local backend on port 3001 connects to the real DB; real PayPal flow remains untested without approved Sandbox credentials. Uncommitted on main, no public deployment.
+
+Previous completed task:
+- **COMPLETED:** Added 10 more grocery products under Hashim in the real Groceries database, preserving the existing 2 (12 total). Added fruit/vegetables, dairy/eggs, bread, rice, and coffee with prices, photos, and Saudi/UAE locations; no Sample label in visible titles. Seeder dry-run confirmed 10 additions before apply and zero afterward. API verified all 12 have Hashim's actual name/email and locations. Source changes remain uncommitted.
+
+Previous completed task:
+- **COMPLETED LOCALLY:** Grocery public products now include actual sellerName/sellerEmail after explicit user approval to publish these fields. Batched verified-platform profile lookup prefers owner ID and supports legacy listing email; public response excludes ownerId/raw email. Tests cover matching, fallback, missing owners, and field exclusion. 25 targeted tests and API/browser checks pass. Local API restarted; uncommitted/not deployed.
+
+Previous completed task:
+- **COMPLETED:** Removed Sample/[SAMPLE] wording from 5 car descriptions and 2 grocery titles in the real DB using an owner-scoped transaction. Listing IDs, owners, locations, and other content preserved. Updated both seeders to use unlabeled content and recognize existing records; dry-runs report zero insertions. API confirms 8 cars/2 products with no labels. Changes are not committed/pushed.
+
+Previous completed task:
 - **VERSION CONTROL:** Prepared the completed marketplace, Visitors/profile, and stored-chat changes for commit and push on `dev`, including related tests and sample/local seller utilities. The pre-existing local-only `scripts/seedSampleProperties.js` is intentionally excluded. No environment files or credentials are included; no production deployment requested.
 
 Previous completed task:

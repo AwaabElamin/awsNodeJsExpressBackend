@@ -14,7 +14,7 @@ const samples = [
         year: '2021',
         country: 'Saudi Arabia',
         state: 'Riyadh',
-        description: '[SAMPLE] 2021 Toyota Camry SE listing. Sample details only; confirm condition and availability with the owner.',
+        description: '2021 Toyota Camry SE listing. Confirm condition and availability with the owner.',
         mainImage: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=70'
     },
     {
@@ -24,7 +24,7 @@ const samples = [
         year: '2022',
         country: 'United Arab Emirates',
         state: 'Dubai',
-        description: '[SAMPLE] 2022 Honda CR-V EX listing. Sample details only; confirm condition and availability with the owner.',
+        description: '2022 Honda CR-V EX listing. Confirm condition and availability with the owner.',
         mainImage: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=70'
     },
     {
@@ -34,7 +34,7 @@ const samples = [
         year: '2020',
         country: 'Saudi Arabia',
         state: 'Makkah',
-        description: '[SAMPLE] 2020 Nissan Altima SV listing. Sample details only; confirm condition and availability with the owner.',
+        description: '2020 Nissan Altima SV listing. Confirm condition and availability with the owner.',
         mainImage: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1200&q=70'
     },
     {
@@ -44,7 +44,7 @@ const samples = [
         year: '2019',
         country: 'United Arab Emirates',
         state: 'Abu Dhabi',
-        description: '[SAMPLE] 2019 Ford Mustang EcoBoost listing. Sample details only; confirm condition and availability with the owner.',
+        description: '2019 Ford Mustang EcoBoost listing. Confirm condition and availability with the owner.',
         mainImage: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=70'
     }
 ];
@@ -100,7 +100,9 @@ async function main() {
         for (const sample of samples) {
             const exists = await cars.findOne({
                 ownerId: user._id,
-                description: sample.description
+                make: sample.make,
+                model: sample.model,
+                year: sample.year
             }, { projection: { _id: 1 } });
             if (exists) {
                 skipped += 1;

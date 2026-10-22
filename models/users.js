@@ -137,6 +137,14 @@ class UserCollection {
             .exec();
     }
 
+    static async getPublicSellerProfiles(ownerIds, emails, platformId) {
+        return userModel.find({
+            $or: [{ _id: { $in: ownerIds } }, { email: { $in: emails } }],
+            emailVerified: { $ne: false },
+            platforms: platformId
+        }).select('_id firstname lastname email').lean().exec();
+    }
+
     static async findPlatformOwnerByEmail(email, platformId) {
         return userModel.findOne({
             email: String(email).trim().toLowerCase(),

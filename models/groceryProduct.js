@@ -31,11 +31,11 @@ const groceryProductModel = DB.getModel('groceries', 'GroceryProduct', groceryPr
 
 class GroceryProducts {
     static async getContactTarget(id) {
-        return groceryProductModel.findById(id).select('title ownerId email').lean().exec();
+        return groceryProductModel.findById(id).select('title price ownerId email').lean().exec();
     }
     static async getPublicProducts() {
         return groceryProductModel.find({})
-            .select('title category unit price country state mainPhoto photos ingredients aboutItem aboutBrand specifications customerRatingReviews createdAt')
+            .select('title category unit price country state mainPhoto photos ingredients aboutItem aboutBrand specifications customerRatingReviews createdAt ownerId email')
             .sort({ createdAt: -1 })
             .lean()
             .exec();

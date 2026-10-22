@@ -106,7 +106,23 @@ exports.getUser = async (req, res, next) => {
 
 exports.listPublic = async (req, res, next) => {
     try {
-        return res.json({ status: 'success', data: await groceryProducts.getPublicProducts() });
+        const products = await groceryProducts.getPublicProducts();
+        const profiles = products.length ? await users.getPublicSellerProfiles(
+            products.map(product => product.ownerId).filter(Boolean),
+            [...new Set(products.map(product => String(product.email || '').trim().toLowerCase()).filter(Boolean))],
+            'groceries'
+        ) : [];
+        const byId = new Map(profiles.map(profile => [String(profile._id), profile]));
+        const byEmail = new Map(profiles.map(profile => [profile.email.trim().toLowerCase(), profile]));
+        const data = products.map(({ ownerId, email, ...product }) => {
+            const seller = byId.get(String(ownerId)) || byEmail.get(String(email || '').trim().toLowerCase());
+            return {
+                ...product,
+                sellerName: seller ? [seller.firstname, seller.lastname].filter(Boolean).join(' ').trim() : '',
+                sellerEmail: seller?.email || ''
+            };
+        });
+        return res.json({ status: 'success', data });
     } catch (error) {
         return next(error);
     }

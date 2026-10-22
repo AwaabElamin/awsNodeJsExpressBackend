@@ -60,4 +60,22 @@ for (const action of ['add', 'edit']) {
         assert.equal(res.body.data.ownerId, undefined);
         assert.equal(res.body.data.email, undefined);
     });
+    test(`${action} validates USD vehicle prices without requiring legacy listings to have a price`, async () => {
+        for (const price of [null, '100', 0, -1, 1.001, 1000001]) {
+            const res = response();
+            calls.length = 0;
+            await controller[action]({
+                body: { country: 'Saudi Arabia', state: 'Riyadh', price },
+                autoUser: { id: 'owner', email: 'owner@example.invalid' }
+            }, res, assert.ifError);
+            assert.equal(res.statusCode, 400);
+            assert.equal(calls.length, 0);
+        }
+        const res = response();
+        await controller[action]({
+            body: { country: 'Saudi Arabia', state: 'Riyadh', price: 12500.50 },
+            autoUser: { id: 'owner', email: 'owner@example.invalid' }
+        }, res, assert.ifError);
+        assert.equal(res.body.data.price, 12500.50);
+    });
 }
