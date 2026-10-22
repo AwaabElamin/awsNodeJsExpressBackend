@@ -38,7 +38,7 @@ async function setupAdmin() {
     }
 
     await users.updateMany(
-        { _id: { $ne: adminId } },
+        { _id: { $ne: adminId }, role: { $ne: 'Visitors' } },
         { $set: { role: 'Client' } },
     );
 

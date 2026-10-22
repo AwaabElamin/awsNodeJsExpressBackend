@@ -4,6 +4,7 @@ const DB = require('../lib/db');
 const messageSchema = new mongoose.Schema({
     sender: { type: String, enum: ['visitor', 'owner'], required: true },
     body: { type: String, required: true, maxlength: 2000 },
+    delivery: { type: String, enum: ['email'] },
     createdAt: { type: Date, default: Date.now }
 }, { _id: true });
 
@@ -11,6 +12,7 @@ const autoMessageSchema = new mongoose.Schema({
     vehicleId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
     vehicleLabel: { type: String, required: true },
     ownerId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+    visitorId: { type: mongoose.Schema.Types.ObjectId, index: true },
     visitorName: { type: String, required: true, maxlength: 100 },
     visitorEmail: { type: String, required: true, lowercase: true, trim: true, maxlength: 254 },
     visitorTokenHash: { type: String, required: true, select: false },
@@ -21,9 +23,45 @@ const autoMessageSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 autoMessageSchema.index({ ownerId: 1, lastMessageAt: -1 });
+autoMessageSchema.index({ visitorId: 1, lastMessageAt: -1 });
 const autoMessageModel = DB.getModel('carshop', 'autoMessages', autoMessageSchema);
 
 class AutoMessageCollection {
+    static visitorFilter(account) {
+        return { $or: [
+            { visitorId: account._id },
+            { visitorId: null, visitorEmail: account.email.trim().toLowerCase() }
+        ] };
+    }
+
+    static async listForVisitor(account) {
+        return autoMessageModel.find(this.visitorFilter(account)).select('-visitorTokenHash').sort({ lastMessageAt: -1 }).lean().exec();
+    }
+
+    static async readForAccount(id, account) {
+        return autoMessageModel.findOneAndUpdate(
+            { _id: id, ...this.visitorFilter(account) }, { $set: { visitorUnreadCount: 0 } }, { new: true }
+        ).select('-visitorTokenHash').lean().exec();
+    }
+
+    static async appendForAccount(id, account, body) {
+        return autoMessageModel.findOneAndUpdate(
+            { _id: id, ...this.visitorFilter(account) },
+            { $push: { messages: { sender: 'visitor', body, createdAt: new Date() } },
+                $inc: { ownerUnreadCount: 1 }, $set: { lastMessageAt: new Date() } },
+            { new: true, runValidators: true }
+        ).select('-visitorTokenHash').lean().exec();
+    }
+
+    static async appendOwnerMessage(id, ownerId, body) {
+        return autoMessageModel.findOneAndUpdate(
+            { _id: id, ownerId },
+            { $push: { messages: { sender: 'owner', body, createdAt: new Date() } },
+                $inc: { visitorUnreadCount: 1 }, $set: { lastMessageAt: new Date() } },
+            { new: true, runValidators: true }
+        ).select('-visitorTokenHash').lean().exec();
+    }
+
     static async createConversation(data) {
         return autoMessageModel.create(data);
     }
@@ -47,18 +85,6 @@ class AutoMessageCollection {
         return autoMessageModel.findOneAndUpdate(
             { _id: id, ownerId },
             { $set: { ownerUnreadCount: 0 } },
-            { new: true }
-        ).select('-visitorTokenHash').lean().exec();
-    }
-
-    static async appendOwnerMessage(id, ownerId, body) {
-        return autoMessageModel.findOneAndUpdate(
-            { _id: id, ownerId },
-            {
-                $push: { messages: { sender: 'owner', body, createdAt: new Date() } },
-                $inc: { visitorUnreadCount: 1 },
-                $set: { lastMessageAt: new Date() }
-            },
             { new: true }
         ).select('-visitorTokenHash').lean().exec();
     }

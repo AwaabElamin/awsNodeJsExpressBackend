@@ -28,7 +28,7 @@ exports.create = async (req, res) => {
     const user = {
         email: normalizedEmail,
         password: bcrypt.hashSync(password, 8),
-        role: 'Client',
+        role: 'Visitors',
         phone,
         firstname,
         lastname,
@@ -134,6 +134,7 @@ exports.getUserByEmail = async(req,res) =>{
                     lastname:userFound.lastname,
                     profilePhoto: await getPhotoUrl(userFound.profilePhoto, userFound._id),
                     platforms:userFound.platforms || [],
+                    role:userFound.role || 'Client',
                     password:""
                 }
             });
@@ -145,6 +146,24 @@ exports.getUserByEmail = async(req,res) =>{
         return res.status(500).json({ status: "error", data: error })
     }
 }
+
+exports.createWorkspace = async (req, res, next) => {
+    try {
+        const email = String(req.user?.email || '').trim().toLowerCase();
+        const account = await usersModel.findByEmail(email);
+        if (!account || account.emailVerified === false) {
+            return res.status(403).json({ status: 'fail', message: 'A verified account is required.' });
+        }
+        if (account.role && !['Visitors', 'Client', 'Admin'].includes(account.role)) {
+            return res.status(403).json({ status: 'fail', message: 'This account cannot create a workspace.' });
+        }
+        const updated = account.role === 'Visitors' ? await usersModel.createWorkspace(email) : account;
+        if (!updated) return res.status(409).json({ status: 'fail', message: 'Account changed. Reload and try again.' });
+        return res.json({ status: 'success', data: { role: updated.role || 'Client' } });
+    } catch (error) {
+        return next(error);
+    }
+};
 
 exports.createProfilePhotoUploadUrl = async (req, res, next) => {
     if (process.env.LOCAL_PROFILE_PHOTO_UPLOAD_DISABLED === 'true') {
@@ -173,6 +192,9 @@ exports.updateProfile = async (req, res, next) => {
         if (!user) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
 
         const body = req.body || {};
+        if (Object.prototype.hasOwnProperty.call(body, 'email')) {
+            return res.status(400).json({ status: 'fail', message: 'Email address cannot be changed.' });
+        }
         const fields = {};
         for (const field of ['firstname', 'lastname']) {
             if (Object.prototype.hasOwnProperty.call(body, field)) {

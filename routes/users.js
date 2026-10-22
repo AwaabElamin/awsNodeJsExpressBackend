@@ -29,6 +29,7 @@ router.post('/login', authorizationController.login);
 router.post('/forgot-password', passwordResetRequestLimit, usersController.requestPasswordReset);
 router.post('/reset-password', passwordResetConfirmLimit, usersController.resetPassword);
 router.post('/userInfo',authorizationController.authorize,usersController.getUserByEmail);
+router.post('/workspace', authorizationController.authorize, usersController.createWorkspace);
 router.post('/profile/photo-upload-url', authorizationController.authorize, usersController.createProfilePhotoUploadUrl);
 router.put('/profile', authorizationController.authorize, usersController.updateProfile);
 // Education and Experience routes are now handled in their own files.

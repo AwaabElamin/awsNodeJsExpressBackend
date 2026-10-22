@@ -24,6 +24,19 @@ async function formatCars(cars, includePhotoKeys = false) {
     return Promise.all(cars.map((car) => formatCar(car, includePhotoKeys)));
 }
 
+function validateLocation(body, res) {
+    if (['country', 'state'].some((field) =>
+        typeof body?.[field] !== 'string' || !body[field].trim() || body[field].trim().length > 100
+    )) {
+        res.status(400).json({
+            status: 'fail',
+            message: 'Country and state/region are required and must each contain 1 to 100 characters.'
+        });
+        return false;
+    }
+    return true;
+}
+
 exports.listPublic = async (req, res, next) => {
     try {
         const cars = await usedCars.getPublicCars();
@@ -44,6 +57,7 @@ exports.listMine = async (req, res, next) => {
 
 exports.add = async (req, res, next) => {
     try {
+        if (!validateLocation(req.body, res)) return;
         const car = await usedCars.addCar(req.body || {}, req.autoUser.id, req.autoUser.email);
         return res.status(201).json({ status: 'success', data: await formatCar(car.toObject(), true) });
     } catch (error) {
@@ -53,6 +67,7 @@ exports.add = async (req, res, next) => {
 
 exports.edit = async (req, res, next) => {
     try {
+        if (!validateLocation(req.body, res)) return;
         const car = await usedCars.updateCar(req.body?._id, req.autoUser.id, req.autoUser.email, req.body || {});
         if (!car) {
             return res.status(404).json({ status: 'fail', message: 'Vehicle not found.' });

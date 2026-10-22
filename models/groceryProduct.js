@@ -5,6 +5,8 @@ const groceryProductSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: 140 },
     category: { type: String, required: true, trim: true, maxlength: 60 },
     unit: { type: String, required: true, trim: true, maxlength: 60 },
+    country: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
     price: { type: Number, required: true, min: 0 },
     mainPhoto: { type: String, required: true, trim: true, maxlength: 1200 },
     photos: { type: [String], default: [] },
@@ -28,9 +30,12 @@ const groceryProductSchema = new mongoose.Schema({
 const groceryProductModel = DB.getModel('groceries', 'GroceryProduct', groceryProductSchema);
 
 class GroceryProducts {
+    static async getContactTarget(id) {
+        return groceryProductModel.findById(id).select('title ownerId email').lean().exec();
+    }
     static async getPublicProducts() {
         return groceryProductModel.find({})
-            .select('title category unit price mainPhoto photos ingredients aboutItem aboutBrand specifications customerRatingReviews createdAt')
+            .select('title category unit price country state mainPhoto photos ingredients aboutItem aboutBrand specifications customerRatingReviews createdAt')
             .sort({ createdAt: -1 })
             .lean()
             .exec();

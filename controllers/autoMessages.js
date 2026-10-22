@@ -8,18 +8,8 @@ const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 const cleanText = (value, limit) => typeof value === 'string' ? value.trim().slice(0, limit) : '';
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-function getGuestToken(req, res) {
-    const token = String(req.headers['x-auto-conversation-token'] || '').trim();
-    if (!token || token.length > 200) {
-        res.status(401).json({ status: 'fail', message: 'Conversation access token is required.' });
-        return null;
-    }
-    return hashToken(token);
-}
-
 function validateMessage(value) {
-    const body = cleanText(value, 2000);
-    return body.length >= 1 ? body : '';
+    return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 2000 ? value.trim() : '';
 }
 
 function toGuestConversation(conversation) {
@@ -28,7 +18,7 @@ function toGuestConversation(conversation) {
         vehicleLabel: conversation.vehicleLabel,
         visitorName: conversation.visitorName,
         visitorEmail: conversation.visitorEmail,
-        messages: conversation.messages,
+        messages: conversation.messages.filter((message) => message.delivery !== 'email'),
         visitorUnreadCount: conversation.visitorUnreadCount,
         lastMessageAt: conversation.lastMessageAt
     };
@@ -36,9 +26,10 @@ function toGuestConversation(conversation) {
 
 exports.startConversation = async (req, res, next) => {
     try {
+        if (!req.account) return res.status(401).json({ status: 'fail', message: 'Register and sign in before messaging a seller.' });
         const vehicleId = String(req.body?.vehicleId || '').trim();
-        const visitorName = cleanText(req.body?.visitorName, 100);
-        const visitorEmail = normalizeEmail(req.body?.visitorEmail);
+        const visitorName = cleanText([req.account.firstname, req.account.lastname].filter(Boolean).join(' '), 100);
+        const visitorEmail = normalizeEmail(req.account.email);
         const body = validateMessage(req.body?.message);
         if (!mongoose.isValidObjectId(vehicleId)
             || visitorName.length < 2
@@ -66,6 +57,7 @@ exports.startConversation = async (req, res, next) => {
             vehicleId: vehicle._id,
             vehicleLabel,
             ownerId: owner._id,
+            visitorId: req.account._id,
             visitorName,
             visitorEmail,
             visitorTokenHash: hashToken(visitorToken),
@@ -121,9 +113,7 @@ exports.replyAsOwner = async (req, res, next) => {
             return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
         }
         const body = validateMessage(req.body?.message);
-        if (!body) {
-            return res.status(400).json({ status: 'fail', message: 'A message is required.' });
-        }
+        if (!body) return res.status(400).json({ status: 'fail', message: 'Enter a message of 1 to 2000 characters.' });
         const conversation = await messages.appendOwnerMessage(req.params.id, req.account._id, body);
         if (!conversation) {
             return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
@@ -135,14 +125,13 @@ exports.replyAsOwner = async (req, res, next) => {
 };
 
 exports.getForVisitor = async (req, res, next) => {
-    const tokenHash = getGuestToken(req, res);
-    if (!tokenHash) return;
+    if (!req.account) return res.status(401).json({ status: 'fail', message: 'Sign in to access your chat.' });
 
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
             return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
         }
-        const conversation = await messages.markVisitorRead(req.params.id, tokenHash);
+        const conversation = await messages.readForAccount(req.params.id, req.account);
         if (!conversation) {
             return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
         }
@@ -153,8 +142,7 @@ exports.getForVisitor = async (req, res, next) => {
 };
 
 exports.replyAsVisitor = async (req, res, next) => {
-    const tokenHash = getGuestToken(req, res);
-    if (!tokenHash) return;
+    if (!req.account) return res.status(401).json({ status: 'fail', message: 'Sign in to access your chat.' });
 
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
@@ -162,9 +150,9 @@ exports.replyAsVisitor = async (req, res, next) => {
         }
         const body = validateMessage(req.body?.message);
         if (!body) {
-            return res.status(400).json({ status: 'fail', message: 'A message is required.' });
+            return res.status(400).json({ status: 'fail', message: 'Enter a message of 1 to 2000 characters.' });
         }
-        const conversation = await messages.appendVisitorMessage(req.params.id, tokenHash, body);
+        const conversation = await messages.appendForAccount(req.params.id, req.account, body);
         if (!conversation) {
             return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
         }
@@ -172,4 +160,11 @@ exports.replyAsVisitor = async (req, res, next) => {
     } catch (error) {
         return next(error);
     }
+};
+
+exports.listForVisitor = async (req, res, next) => {
+    try {
+        const conversations = await messages.listForVisitor(req.account);
+        return res.json({ status: 'success', data: conversations.map(toGuestConversation) });
+    } catch (error) { return next(error); }
 };

@@ -20,12 +20,13 @@ router.post('/usedCars', requireAutoUser, requireAutoPlatform, usedCars.add);
 router.post('/usedCars/edit', requireAutoUser, requireAutoPlatform, usedCars.edit);
 router.post('/usedCars/delete', requireAutoUser, requireAutoPlatform, usedCars.remove);
 
-router.post('/conversations', limitAutoConversationStarts, messages.startConversation);
-router.get('/conversations/:id', messages.getForVisitor);
-router.post('/conversations/:id/messages', limitAutoMessages, messages.replyAsVisitor);
+router.post('/conversations', requireAutoUser, limitAutoConversationStarts, messages.startConversation);
+router.get('/conversations', requireAutoUser, messages.listForVisitor);
+router.get('/conversations/:id', requireAutoUser, messages.getForVisitor);
+router.post('/conversations/:id/messages', requireAutoUser, limitAutoMessages, messages.replyAsVisitor);
 
 router.get('/messages/inbox', requireAutoUser, requireAutoPlatform, messages.listForOwner);
 router.get('/messages/inbox/:id', requireAutoUser, requireAutoPlatform, messages.getForOwner);
-router.post('/messages/inbox/:id/reply', requireAutoUser, requireAutoPlatform, messages.replyAsOwner);
+router.post('/messages/inbox/:id/reply', requireAutoUser, requireAutoPlatform, limitAutoMessages, messages.replyAsOwner);
 
 module.exports = router;

@@ -5,6 +5,9 @@ exports.provisionUser = async (req, res, next) => {
         if (!req.account) {
             return res.status(403).json({ status: 'fail', message: 'An Awaaab account is required.' });
         }
+        if (req.account.role === 'Visitors') {
+            return res.status(403).json({ status: 'fail', message: 'Create your workspace to become a Client first.' });
+        }
 
         const user = await users.enablePlatform(req.autoUser.email, 'auto');
         if (!user) {

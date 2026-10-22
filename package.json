@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node app.js",
     "start:local": "node scripts/startLocal.js",
+    "start:local-autohub-sellers": "node scripts/startLocalAutoSellerInfo.js",
     "seed:local-profile": "node scripts/seedLocalProfileUser.js",
     "setup:admin": "node scripts/setupAdmin.js",
     "migrate:autohub": "node scripts/migrateAutoHub.js",

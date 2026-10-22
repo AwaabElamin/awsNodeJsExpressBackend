@@ -13,6 +13,9 @@ const isHttpUrl = (value) => {
 
 function normalizeProduct(input) {
     const source = input && typeof input === 'object' ? input : {};
+    if (['country', 'state'].some((field) => typeof source[field] !== 'string' || !source[field].trim() || source[field].trim().length > 100)) {
+        return { error: 'Country and state/region are required and must each contain 1 to 100 characters.' };
+    }
     const title = text(source.title, 140);
     const category = text(source.category, 60);
     const unit = text(source.unit, 60);
@@ -32,6 +35,8 @@ function normalizeProduct(input) {
     return {
         data: {
             title,
+            country: source.country.trim(),
+            state: source.state.trim(),
             category,
             unit,
             price,
@@ -54,6 +59,9 @@ function normalizeProduct(input) {
 
 exports.provisionUser = async (req, res, next) => {
     try {
+        if (req.account?.role === 'Visitors') {
+            return res.status(403).json({ status: 'fail', message: 'Create your Client workspace from My portal before enabling a grocery shop.' });
+        }
         const user = await users.enablePlatform(req.autoUser.email, 'groceries');
         if (!user) {
             return res.status(404).json({ status: 'fail', message: 'A verified Awaaab account is required.' });

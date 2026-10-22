@@ -6,6 +6,8 @@ const usedCarSchema = new mongoose.Schema({
     model: String,
     color: String,
     year: String,
+    country: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
     description: String,
     mainImage: String,
     photos: { type: [String], default: [] },
@@ -26,7 +28,7 @@ class AutoUsedCars {
 
     static async getPublicCars() {
         return usedCarModel.find({})
-            .select('make model color year description mainImage photos imagesFolder ownerId')
+            .select('make model color year country state description mainImage photos imagesFolder ownerId')
             .lean()
             .exec();
     }
@@ -46,6 +48,8 @@ class AutoUsedCars {
             model: data.model,
             color: data.color,
             year: data.year,
+            country: data.country,
+            state: data.state,
             description: data.description,
             mainImage: data.mainImage,
             photos: Array.isArray(data.photos) ? data.photos.filter((photo) => typeof photo === 'string').slice(0, 20) : [],
@@ -70,6 +74,8 @@ class AutoUsedCars {
                     model: data.model,
                     color: data.color,
                     year: data.year,
+                    country: data.country,
+                    state: data.state,
                     description: data.description,
                     mainImage: data.mainImage,
                     photos: Array.isArray(data.photos) ? data.photos.filter((photo) => typeof photo === 'string').slice(0, 20) : [],

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
     profilePhoto: { type: String, default: '' },
     firstname: { type: String },
     lastname: { type: String },
-    role: { type: String, enum: ['Client', 'Admin'], default: 'Client' },
+    role: { type: String, enum: ['Visitors', 'Client', 'Admin'], default: 'Client' },
     platforms: { type: [String], default: [] },
     emailVerified: { type: Boolean, default: false },
     verificationTokenHash: { type: String, default: null },
@@ -21,6 +21,13 @@ const userSchema = new mongoose.Schema({
 
 const userModel = mongoose.model('User', userSchema);
 class UserCollection {
+    static async createWorkspace(email) {
+        return userModel.findOneAndUpdate(
+            { email, role: 'Visitors', emailVerified: { $ne: false } },
+            { $set: { role: 'Client' } },
+            { new: true, runValidators: true, projection: 'email firstname lastname role' }
+        ).lean();
+    }
     // Add an education ObjectId to a user
     static async addEducation(userId, educationId) {
         try {
@@ -143,7 +150,7 @@ class UserCollection {
 
     static async enablePlatform(email, platformId) {
         return userModel.findOneAndUpdate(
-            { email: String(email).trim().toLowerCase(), emailVerified: { $ne: false } },
+            { email: String(email).trim().toLowerCase(), emailVerified: { $ne: false }, role: { $in: ['Client', 'Admin', null] } },
             { $addToSet: { platforms: platformId } },
             { new: true, projection: 'email firstname lastname phone role platforms emailVerified' }
         ).lean();
