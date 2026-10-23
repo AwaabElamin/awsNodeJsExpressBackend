@@ -1,5 +1,6 @@
 const JwtManager = require('../jwt/jwtManager');
 const users = require('../models/users');
+const { DEACTIVATED_MESSAGE } = require('../controllers/auth');
 
 module.exports = async (req, res, next) => {
     const parts = String(req.headers.authorization || '').split(' ');
@@ -21,6 +22,9 @@ module.exports = async (req, res, next) => {
         const account = await users.findByEmail(email);
         if (!account || account.emailVerified === false) {
             return res.status(401).json({ status: 'fail', message: 'Unauthenticated.' });
+        }
+        if (account.isActive === false) {
+            return res.status(403).json({ status: 'fail', code: 'ACCOUNT_DEACTIVATED', message: DEACTIVATED_MESSAGE });
         }
         req.account = {
             _id: account._id,

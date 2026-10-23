@@ -37,5 +37,10 @@ module.exports = {
     ).lean().exec(),
     markOwnerRead: (id, ownerId) => model.findOneAndUpdate(
         { _id: id, ownerId }, { $set: { ownerUnreadCount: 0 } }, { new: true }
-    ).lean().exec()
+    ).lean().exec(),
+    // Admin oversight: every thread where the account is the seller or the visitor.
+    listForAccountAdmin: (account) => model.find({ $or: [{ ownerId: account._id }, { visitorId: account._id }] })
+        .sort({ lastMessageAt: -1 }).lean().exec(),
+    getByIdAdmin: (id) => model.findById(id).lean().exec(),
+    deleteByIdAdmin: (id) => model.findByIdAndDelete(id).select('_id').lean().exec()
 };

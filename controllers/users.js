@@ -135,6 +135,11 @@ exports.getUserByEmail = async(req,res) =>{
                     profilePhoto: await getPhotoUrl(userFound.profilePhoto, userFound._id),
                     platforms:userFound.platforms || [],
                     role:userFound.role || 'Client',
+                    warnings: Array.isArray(userFound.warnings) ? userFound.warnings.map((warning) => ({
+                        _id: warning._id,
+                        message: warning.message,
+                        createdAt: warning.createdAt
+                    })) : [],
                     password:""
                 }
             });

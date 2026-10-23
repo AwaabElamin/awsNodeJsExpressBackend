@@ -1,6 +1,8 @@
 const JwtManager = require('../jwt/jwtManager');
 const bcrypt = require('bcrypt');
 const userModel = require('../models/users');
+const DEACTIVATED_MESSAGE = 'Your account has been deactivated by Awaaab LLC. Contact support if you believe this is a mistake.';
+exports.DEACTIVATED_MESSAGE = DEACTIVATED_MESSAGE;
 exports.login = async (req, res) => {
     const loginId = req.body?.email || req.body?.username || req.body?.loginId;
     const { password } = req.body || {};
@@ -11,6 +13,9 @@ exports.login = async (req, res) => {
             if (userFound) {  
                 if (userFound.emailVerified === false) {
                     return res.status(403).json({ status: 'fail', message: 'Please confirm your email address before signing in.' });
+                }
+                if (userFound.isActive === false) {
+                    return res.status(403).json({ status: 'fail', code: 'ACCOUNT_DEACTIVATED', message: DEACTIVATED_MESSAGE });
                 }
                 if (bcrypt.compareSync(password, userFound.password)) {
                     const data = { email: userFound.email };
@@ -35,7 +40,7 @@ exports.login = async (req, res) => {
 
 
 }
-exports.authorize = (req, res, next) => {
+exports.authorize = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
         console.log('No Authorization header');
@@ -49,17 +54,29 @@ exports.authorize = (req, res, next) => {
 
     const token = parts[1];
     const jwt = new JwtManager();
+    let data;
     try {
-        const data = jwt.verify(token);
+        data = jwt.verify(token);
         if (!data || data.autoHub === true) {
             return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
         }
-        // attach verified data to request for downstream handlers
-        req.user = data;
-        return next();
     } catch (err) {
         console.log('Token verification error', err);
         return res.status(401).json({ status: 'fail', message: 'Unauthenticated' });
     }
 
+    // Existing tokens stop working as soon as an Admin deactivates the account.
+    try {
+        if (typeof data.email === 'string') {
+            const account = await userModel.findByEmail(data.email.trim().toLowerCase());
+            if (account && account.isActive === false) {
+                return res.status(403).json({ status: 'fail', code: 'ACCOUNT_DEACTIVATED', message: DEACTIVATED_MESSAGE });
+            }
+        }
+    } catch (err) {
+        return next(err);
+    }
+    // attach verified data to request for downstream handlers
+    req.user = data;
+    return next();
 }

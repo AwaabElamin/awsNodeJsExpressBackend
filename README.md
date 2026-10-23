@@ -163,6 +163,11 @@ What changed
 - `GET /client-briefs` requires a valid account token and an Admin role; the role is rechecked against the user record on each request.
 - `/admin/users` requires the same Admin authorization for account listing, Client creation, Client profile updates, and Client deletion. Responses never include password hashes or verification tokens.
 - Account listing includes the Admin record for visibility; the API only permits CRUD on `Client` records. Client creation requires email verification; roles, emails, and passwords cannot be changed through profile editing.
+- Admin account oversight (Clients and Visitors only; never the Admin record):
+  - `GET /admin/users/:id` returns the account, its AutoHub cars and grocery products, and a summary of every AutoHub/Groceries conversation it takes part in (as seller or visitor).
+  - `PATCH /admin/users/:id/status` with `{ isActive: boolean }` deactivates or reactivates the account. Deactivated accounts cannot sign in, existing tokens are rejected with `403` and `code: 'ACCOUNT_DEACTIVATED'`, and messaging is blocked. Listings stay publicly visible.
+  - `POST /admin/users/:id/warnings` with `{ message }` (1–1000 chars) stores an in-app warning; `DELETE /admin/users/:id/warnings/:warningId` removes it. Warnings are returned by `POST /users/userInfo` so the account holder sees them on My account. No email is sent.
+  - `GET` / `DELETE /admin/users/conversations/:platform/:conversationId` (`platform` is `auto` or `groceries`) read or permanently delete a conversation thread.
 - Public signups always receive the `Visitors` role. They cannot choose or submit a role; becoming a Client requires explicit workspace creation.
 - Configure the sole Admin with `ADMIN_PASSWORD` and `MONGODB_URI_USERS` in the environment, then run `npm run setup:admin`. The script hashes the password, provisions the username `Admin`, and demotes any other Admin accounts to `Client`.
 - The Admin password is never stored in source code. Use a strong password and do not print it in logs.

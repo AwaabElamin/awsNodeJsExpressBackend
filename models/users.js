@@ -10,6 +10,14 @@ const userSchema = new mongoose.Schema({
     lastname: { type: String },
     role: { type: String, enum: ['Visitors', 'Client', 'Admin'], default: 'Client' },
     platforms: { type: [String], default: [] },
+    isActive: { type: Boolean, default: true },
+    warnings: {
+        type: [{
+            message: { type: String, required: true, trim: true, maxlength: 1000 },
+            createdAt: { type: Date, default: Date.now }
+        }],
+        default: []
+    },
     emailVerified: { type: Boolean, default: false },
     verificationTokenHash: { type: String, default: null },
     verificationTokenExpiresAt: { type: Date, default: null },
@@ -66,9 +74,35 @@ class UserCollection {
     }
     static async listAllForAdmin() {
         return userModel.find({})
-            .select('email username firstname lastname phone role platforms emailVerified createdAt')
+            .select('email username firstname lastname phone role platforms emailVerified isActive warnings createdAt')
             .sort({ createdAt: -1 })
             .lean();
+    }
+    static async getManagedAccountForAdmin(id) {
+        return userModel.findOne({ _id: id, role: { $in: ['Client', 'Visitors'] } })
+            .select('email username firstname lastname phone role platforms emailVerified isActive warnings createdAt')
+            .lean();
+    }
+    static async setActiveForAdmin(id, isActive) {
+        return userModel.findOneAndUpdate(
+            { _id: id, role: { $in: ['Client', 'Visitors'] } },
+            { $set: { isActive } },
+            { new: true, projection: 'email username firstname lastname phone role platforms emailVerified isActive warnings createdAt' }
+        ).lean();
+    }
+    static async addWarningForAdmin(id, message) {
+        return userModel.findOneAndUpdate(
+            { _id: id, role: { $in: ['Client', 'Visitors'] } },
+            { $push: { warnings: { message, createdAt: new Date() } } },
+            { new: true, runValidators: true, projection: 'email username firstname lastname phone role platforms emailVerified isActive warnings createdAt' }
+        ).lean();
+    }
+    static async removeWarningForAdmin(id, warningId) {
+        return userModel.findOneAndUpdate(
+            { _id: id, role: { $in: ['Client', 'Visitors'] }, 'warnings._id': warningId },
+            { $pull: { warnings: { _id: warningId } } },
+            { new: true, projection: 'email username firstname lastname phone role platforms emailVerified isActive warnings createdAt' }
+        ).lean();
     }
     static async updateClientForAdmin(id, fields) {
         return userModel.findOneAndUpdate(

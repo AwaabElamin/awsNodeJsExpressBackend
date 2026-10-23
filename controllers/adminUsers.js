@@ -1,10 +1,39 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const usersModel = require('../models/users');
+const usedCars = require('../models/autoUsedCar');
+const groceryProducts = require('../models/groceryProduct');
+const autoMessages = require('../models/autoMessage');
+const groceryMessages = require('../models/groceryMessage');
 const { sendVerificationEmail } = require('../lib/mailer');
+
+const CONVERSATION_PLATFORMS = {
+    auto: autoMessages,
+    groceries: groceryMessages
+};
 
 function validText(value, maxLength) {
     return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= maxLength;
+}
+
+function conversationSummary(platform, conversation, accountId) {
+    const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
+    const last = messages[messages.length - 1];
+    return {
+        _id: conversation._id,
+        platform,
+        listingLabel: conversation.vehicleLabel,
+        listingId: conversation.vehicleId || conversation.productId,
+        accountSide: String(conversation.ownerId) === String(accountId) ? 'owner' : 'visitor',
+        ownerId: conversation.ownerId,
+        visitorId: conversation.visitorId,
+        visitorName: conversation.visitorName,
+        visitorEmail: conversation.visitorEmail,
+        messageCount: messages.length,
+        lastMessage: last ? { sender: last.sender, body: last.body, createdAt: last.createdAt } : null,
+        lastMessageAt: conversation.lastMessageAt
+    };
 }
 
 exports.listUsers = async (req, res, next) => {
@@ -101,6 +130,123 @@ exports.deleteClient = async (req, res, next) => {
         const deleted = await usersModel.deleteClientForAdmin(req.params.id);
         if (!deleted) return res.status(404).json({ status: 'fail', message: 'Client not found.' });
         return res.json({ status: 'success', message: 'Client deleted.' });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.getAccountOverview = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+    }
+    try {
+        const account = await usersModel.getManagedAccountForAdmin(req.params.id);
+        if (!account) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+
+        const email = String(account.email || '').trim().toLowerCase();
+        const [cars, products, autoThreads, groceryThreads] = await Promise.all([
+            usedCars.getCarsForOwner(account._id, email),
+            groceryProducts.getProductsForOwner(account._id, email),
+            autoMessages.listForAccountAdmin(account),
+            groceryMessages.listForAccountAdmin(account)
+        ]);
+
+        return res.json({
+            status: 'success',
+            data: {
+                account,
+                listings: {
+                    cars: cars.map((car) => ({
+                        _id: car._id, make: car.make, model: car.model, year: car.year, color: car.color,
+                        price: car.price, country: car.country, state: car.state, mainImage: car.mainImage
+                    })),
+                    products: products.map((product) => ({
+                        _id: product._id, title: product.title, category: product.category, unit: product.unit,
+                        price: product.price, country: product.country, state: product.state,
+                        mainPhoto: product.mainPhoto, createdAt: product.createdAt
+                    }))
+                },
+                conversations: [
+                    ...autoThreads.map((thread) => conversationSummary('auto', thread, account._id)),
+                    ...groceryThreads.map((thread) => conversationSummary('groceries', thread, account._id))
+                ].sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
+            }
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.setAccountStatus = async (req, res, next) => {
+    const { isActive } = req.body || {};
+    if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ status: 'fail', message: 'Provide isActive as true or false.' });
+    }
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+    }
+    try {
+        const account = await usersModel.setActiveForAdmin(req.params.id, isActive);
+        if (!account) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+        return res.json({ status: 'success', data: account });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.addWarning = async (req, res, next) => {
+    const { message } = req.body || {};
+    if (!validText(message, 1000)) {
+        return res.status(400).json({ status: 'fail', message: 'Warning message must be between 1 and 1000 characters.' });
+    }
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+    }
+    try {
+        const account = await usersModel.addWarningForAdmin(req.params.id, message.trim());
+        if (!account) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
+        return res.status(201).json({ status: 'success', data: account });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.removeWarning = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id) || !mongoose.isValidObjectId(req.params.warningId)) {
+        return res.status(404).json({ status: 'fail', message: 'Warning not found.' });
+    }
+    try {
+        const account = await usersModel.removeWarningForAdmin(req.params.id, req.params.warningId);
+        if (!account) return res.status(404).json({ status: 'fail', message: 'Warning not found.' });
+        return res.json({ status: 'success', data: account });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.getConversation = async (req, res, next) => {
+    const store = CONVERSATION_PLATFORMS[req.params.platform];
+    if (!store || !mongoose.isValidObjectId(req.params.conversationId)) {
+        return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
+    }
+    try {
+        const conversation = await store.getByIdAdmin(req.params.conversationId);
+        if (!conversation) return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
+        return res.json({ status: 'success', data: { ...conversation, platform: req.params.platform } });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+exports.deleteConversation = async (req, res, next) => {
+    const store = CONVERSATION_PLATFORMS[req.params.platform];
+    if (!store || !mongoose.isValidObjectId(req.params.conversationId)) {
+        return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
+    }
+    try {
+        const deleted = await store.deleteByIdAdmin(req.params.conversationId);
+        if (!deleted) return res.status(404).json({ status: 'fail', message: 'Conversation not found.' });
+        return res.json({ status: 'success', message: 'Conversation deleted.' });
     } catch (error) {
         return next(error);
     }

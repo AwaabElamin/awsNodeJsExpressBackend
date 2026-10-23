@@ -115,6 +115,32 @@ class AutoMessageCollection {
             { new: true }
         ).select('-visitorTokenHash').lean().exec();
     }
+
+    // Admin oversight: every thread where the account is the seller or the visitor.
+    static adminAccountFilter(account) {
+        const email = String(account.email || '').trim().toLowerCase();
+        return { $or: [
+            { ownerId: account._id },
+            { visitorId: account._id },
+            { visitorId: null, visitorEmail: email }
+        ] };
+    }
+
+    static async listForAccountAdmin(account) {
+        return autoMessageModel.find(this.adminAccountFilter(account))
+            .select('-visitorTokenHash')
+            .sort({ lastMessageAt: -1 })
+            .lean()
+            .exec();
+    }
+
+    static async getByIdAdmin(id) {
+        return autoMessageModel.findById(id).select('-visitorTokenHash').lean().exec();
+    }
+
+    static async deleteByIdAdmin(id) {
+        return autoMessageModel.findByIdAndDelete(id).select('_id').lean().exec();
+    }
 }
 
 module.exports = AutoMessageCollection;
