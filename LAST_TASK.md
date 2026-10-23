@@ -23,6 +23,9 @@ Local notes (2026-10-22):
 - Added `scripts/startLocalAutoSellerInfo.js` and `start:local-autohub-sellers` for a loopback-only, read-only local seller profile lookup. It maps listing owner IDs/emails to the shared users database and never writes to MongoDB.
 
 Last completed task:
+- **COMPLETED (FRONTEND ONLY):** Added a Client-only "Pay Awaaab LLC" button on the My account page that opens the public PayPal pay link `VITE_PAYPAL_PAY_URL` ([https://www.paypal.com/ncp/payment/3FNFCPUC54VG4](https://www.paypal.com/ncp/payment/3FNFCPUC54VG4)) in a new tab. Frontend-only; no backend, webhook, or credentials. Also removed the `tools:` restriction from `.claude/agents/Awaab.agent.md`. No backend source changes; frontend committed and pushed on `dev`.
+
+Previous completed task:
 - **PAYPAL SETUP PAUSED / SAVING TO DEV:** User created Awaaab LLC's separate PayPal Business account and reached Developer > Apps & Credentials with a "Default Application". App type/capabilities and multiparty approval are unverified. No actual PayPal credentials configured; Hashim onboarding not started. Payments stay disabled.
 - Resume by selecting Sandbox, inspecting Default Application type/capabilities and verifying platform permissions. Then configure approved partner credentials in server-side secrets and a reachable HTTPS webhook, enable Sandbox, and onboard Hashim. Local frontend is supported; webhook requires a secure tunnel or test deployment. Do not share secrets or enable live payments.
 - Saving pending backend marketplace and disabled Sandbox integration changes to dev. Latest validation: 41 targeted tests passed, including real-DB temporary payment persistence with exact cleanup; frontend build/lint passed. Pre-existing untracked scripts/seedSampleProperties.js is excluded, as are actual environment secrets. No main merge or deployment requested.
