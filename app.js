@@ -37,8 +37,6 @@ async function start() {
       ]);
     }
     console.log('All DB connections are ready');
-    const { Seller, Payment } = require('./models/payment');
-    await Promise.all([Seller.init(), Payment.init()]);
   } catch (err) {
     console.error('Failed to connect to MongoDB', err);
     process.exit(1);
@@ -90,7 +88,6 @@ async function start() {
   app.use('/mainMain', mainMainRouter);
   app.use('/auto',autoRouter)
   app.use('/groceries', groceriesRouter);
-  app.use('/payments', require('./routes/payments'));
   app.use('/client-briefs', clientBriefsRouter);
   app.use('/admin/users', adminUsersRouter);
   app.use('/property-management/api', propertyManagementRouter);

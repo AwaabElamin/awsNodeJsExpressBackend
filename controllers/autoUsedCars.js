@@ -1,6 +1,5 @@
 const usedCars = require('../models/autoUsedCar');
 const { getPhotoUrl } = require('../lib/autoHubS3');
-const { money } = require('../lib/paypal');
 
 async function formatCar(car, includePhotoKeys = false) {
     const ownerId = car.ownerId;
@@ -36,9 +35,14 @@ function validateLocation(body, res) {
         return false;
     }
     if (body.price !== undefined) {
-        try { money(body.price); }
-        catch (error) {
-            res.status(400).json({ status: 'fail', message: error.message });
+        const amount = body.price;
+        const cents = Math.round(amount * 100);
+        if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0
+            || amount > 1000000 || Math.abs(amount * 100 - cents) > 0.000001) {
+            res.status(400).json({
+                status: 'fail',
+                message: 'The seller must set a positive USD price with at most two decimal places.'
+            });
             return false;
         }
     }

@@ -1,13 +1,18 @@
 # Last Task Snapshot
 
-Updated: 2026-10-22
+Capilot do not know how to setup paypal button
+
+Updated: 2026-10-23
 
 Auto-update policy:
 - Update this file at the end of every completed request.
 - If no files are changed in a request, keep this file updated anyway.
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
-Local note (2026-10-22):
+Local note (2026-10-23):
+- Removed the PayPal marketplace checkout, seller onboarding, payment history, webhook/API routes, related backend configuration/docs, and integration tests at the user's request. Existing listing prices, stored records, cloud settings, and PayPal dashboard/webhook were left untouched. Backend suite passed (27, 1 skipped); vehicle price/location tests passed (6). Frontend preview was started for user review and then stopped. No deployment performed.
+
+Local notes (2026-10-22):
 - Public registration now creates `Visitors`; explicit verified `/users/workspace` upgrade creates a Client. Existing roles are preserved. Inquiry routes require authentication and bind sender/access to the account; platform enrollment blocks Visitors. Setup-admin preserves Visitors. 14 tests pass and local backend restarted; no production deployment.
 - Seller replies now use the seller's external email app. Legacy owner reply API returns HTTP 409 after ownership checks, without SMTP or chat writes. Removed the proposed Awaaab SMTP reply implementation; account verification/reset mail is unchanged. Targeted reply/location tests pass (7 total).
 - Added required country/state fields to car persistence and public listing projection. Create/edit reject blank, missing, non-string, or oversized locations with HTTP 400; 4 targeted tests pass.
