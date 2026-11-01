@@ -24,6 +24,8 @@ const OPTIONS_PAYLOAD = {
         userCapabilities: O.USER_CAPABILITIES,
         capabilitiesByRole: O.CAPABILITIES_BY_ROLE,
         devicesByType: O.DEVICES_BY_TYPE,
+        capabilityRequiresFeature: O.CAPABILITY_REQUIRES_FEATURE,
+        integrationRequiresFeature: O.INTEGRATION_REQUIRES_FEATURE,
         featureCatalogue: O.FEATURE_CATALOGUE,
         featurePriorities: O.FEATURE_PRIORITIES,
         devices: O.DEVICES,
@@ -69,6 +71,7 @@ const OPTIONS_PAYLOAD = {
     clientEditableStatuses: O.CLIENT_EDITABLE_STATUSES,
     limits: O.LIMITS,
     maxChoices: O.MAX_CHOICES,
+    minLeadDays: O.MIN_LEAD_DAYS,
     minWords: O.MIN_WORDS
 };
 

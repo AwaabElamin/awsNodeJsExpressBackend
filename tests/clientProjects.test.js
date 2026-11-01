@@ -137,7 +137,7 @@ const validProject = {
     painPoints: ['Everything is handled by phone or WhatsApp', 'Orders or bookings get lost or doubled'],
     successMeasures: ['Fewer phone calls and messages', 'Fewer errors (double bookings, wrong orders)'],
     budgetRange: '$5,000–$10,000',
-    targetDate: '2026-12-15',
+    targetDate: '2027-03-15',
     timelineFlexibility: 'Some flexibility',
     decisionMakerRole: 'Me',
     decisionMakerName: 'Dr. Amal Hassan',
@@ -151,6 +151,10 @@ const validProject = {
     features: [
         { key: 'booking', priority: 'must', details: ['Appointments with staff'] },
         { key: 'notifications', details: ['SMS', 'WhatsApp'] },
+        { key: 'accounts', details: ['Phone number and code'] },
+        { key: 'orders_admin', details: ['View and confirm'] },
+        { key: 'reports', details: ['Sales or bookings over time'] },
+        { key: 'payments', details: ['Mobile money or local wallet'] },
         { key: 'other', customTitle: 'Dentist profile pages', priority: 'could' }
     ],
     devices: ['Mobile web', 'Desktop web', 'Mobile web'],
@@ -208,11 +212,12 @@ test('closed-form validation accepts a complete SDLC payload and rejects missing
     assert.equal(ok.fields.name, 'Booking portal');
     assert.deepEqual(ok.fields.integrations, ['Email or messaging', 'Payments or billing']);
     assert.deepEqual(ok.fields.devices, ['Mobile web', 'Desktop web']);
-    assert.equal(ok.fields.targetDate.toISOString(), '2026-12-15T00:00:00.000Z');
+    assert.equal(ok.fields.targetDate.toISOString(), '2027-03-15T00:00:00.000Z');
     assert.equal(ok.fields.userRoles.length, 2);
     assert.equal(ok.fields.features[0].label, 'Online booking or appointments');
     assert.equal(ok.fields.features[1].priority, 'must');
-    assert.equal(ok.fields.features[2].customTitle, 'Dentist profile pages');
+    assert.equal(ok.fields.features.find((f) => f.key === 'other').customTitle, 'Dentist profile pages');
+    assert.equal(ok.fields._capabilityCheck, undefined);
     assert.equal(ok.fields.references[0].url, 'https://example-clinic.com/');
     assert.equal(ok.fields.assets.hosting, 'not_sure');
     assert.equal(ok.fields.industryOther, '');
@@ -251,6 +256,20 @@ test('closed-form validation accepts a complete SDLC payload and rejects missing
     const approverFromAccount = validateProjectInput({ ...validProject, decisionMakerRole: 'Me', decisionMakerName: '' }, { firstname: 'Hashim', lastname: 'Hash' });
     assert.equal(approverFromAccount.fields.decisionMakerName, 'Hashim Hash');
     assert.match(validateProjectInput({ ...validProject, decisionMakerRole: 'A manager or director', decisionMakerName: 'Mjuhgt' }).error, /at least 2 words/);
+
+    // Cross-field rules learned from the third real submission.
+    assert.match(validateProjectInput({ ...validProject, features: [{ key: 'pages_basic' }] }, undefined, { now: new Date('2026-11-01') }).error, /not available for a Web application/);
+    const webBasics = { ...validProject, type: 'Website', features: [{ key: 'pages_basic', details: ['Home', 'Contact'] }], integrations: [] };
+    assert.match(validateProjectInput(webBasics).error, /can "Book an appointment or reservation", but no feature provides it. Add "Online booking or appointments"/);
+    const noPaymentFeature = { ...validProject, features: validProject.features.filter((f) => f.key !== 'payments') };
+    assert.match(validateProjectInput(noPaymentFeature).error, /integration "Payments or billing" needs a feature/);
+    assert.match(validateProjectInput({ ...validProject, uatTesters: ['Awaaab LLC only', 'Me'] }).error, /cannot be combined/);
+    assert.match(validateProjectInput({ ...validProject, businessSize: 'Just me', uatTesters: ['Me', 'My staff'] }).error, /no staff to test/);
+    assert.match(validateProjectInput({ ...validProject, targetDate: '2026-11-10' }, undefined, { now: new Date('2026-11-01T12:00:00Z') }).error, /at least 14 days from today \(2026-11-15 or later\)/);
+    assert.equal(validateProjectInput({ ...validProject, targetDate: '2026-11-15' }, undefined, { now: new Date('2026-11-01T12:00:00Z') }).error, undefined);
+    assert.match(validateProjectInput({ ...validProject, name: 'shhhshhh' }).error, /Project name does not look like readable text/);
+    assert.equal(isReadableText('Hashim'), true);
+    assert.equal(isReadableText('بسم الله الرحمن الرحيم'), true);
 
     assert.equal(validateRequestInput(validRequest, savedProjectShape).error, undefined);
     assert.equal(validateRequestInput({ ...validRequest, priority: undefined }, savedProjectShape).fields.priority, 'normal');
