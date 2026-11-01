@@ -97,6 +97,12 @@ mockModule('../models/clientProject', {
         Object.assign(project, extra, { planDecision: { choice: decision.choice, at: new Date(), planVersion: decision.planVersion } });
         if (decision.choice !== 'discuss') project.status = 'reviewing';
         return project;
+    },
+    confirmPlan: async (id, by, analysis) => {
+        const project = store.projects.find((item) => String(item._id) === String(id));
+        if (!project || !project.plan) return null;
+        Object.assign(project, { analysis, planConfirmed: { at: new Date(), by, planVersion: analysis.basedOnPlanVersion }, status: 'proposal_sent' });
+        return project;
     }
 });
 mockModule('../models/clientBrief', {
@@ -383,6 +389,22 @@ test('the client decides on the automatic plan with one click', async () => {
     assert.equal(project.planDecision.choice, 'accept_phase1');
     assert.equal(project.status, 'reviewing');
     assert.match(accept.body.message, /Plan accepted/);
+
+    // Admin confirms the plan → requirements analysis generated, status proposal_sent.
+    const confirmed = response();
+    await adminClientProjects.confirmPlan({ params: { id: String(ids.project) }, admin: { email: 'admin@local.invalid' } }, confirmed, assert.ifError);
+    assert.equal(confirmed.statusCode, 200);
+    assert.equal(project.status, 'proposal_sent');
+    assert.equal(project.planConfirmed.by, 'admin@local.invalid');
+    assert.ok(project.analysis && project.analysis.functional.length >= 1);
+    assert.equal(project.analysis.basedOnPlanVersion, project.plan.version);
+
+    const noPlan = response();
+    const other = store.projects.find((item) => String(item.ownerId) === String(ids.client) && !item.plan);
+    if (other) {
+        await adminClientProjects.confirmPlan({ params: { id: String(other._id) }, admin: { email: 'admin@local.invalid' } }, noPlan, assert.ifError);
+        assert.equal(noPlan.statusCode, 409);
+    }
     project.status = 'requested';
     project.planDecision = null;
 });

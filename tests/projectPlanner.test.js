@@ -81,3 +81,36 @@ test('planner returns null for legacy free-text projects and a single phase when
     assert.deepEqual(plan.decisions.map((decision) => decision.key), ['accept_phase1', 'discuss']);
     assert.equal(plan.timeline.fitsTargetDate, null);
 });
+
+const { buildAnalysis } = require('../lib/requirementsAnalysis');
+
+test('requirements analysis is generated from the confirmed plan with stories, FRs, NFRs, risks and open questions', () => {
+    const plan = buildPlan(hashimShop, { now: new Date('2026-11-01T12:00:00Z') });
+    const analysis = buildAnalysis(hashimShop, plan, { now: new Date('2026-11-01T13:00:00Z'), confirmedBy: 'admin@example.invalid' });
+    assert.equal(analysis.basedOnPlanVersion, 1);
+    assert.equal(analysis.confirmedBy, 'admin@example.invalid');
+
+    assert.equal(analysis.scope.goal, 'Sell products online');
+    assert.ok(analysis.scope.inScope.some((item) => /Product or service catalogue/.test(item)));
+    assert.ok(analysis.scope.outOfScope.some((item) => /Online payments — Phase 2/.test(item)));
+
+    assert.ok(analysis.stories.length >= 5);
+    assert.ok(analysis.stories.some((story) => /registered customer or member, I want to create an account/.test(story.story) && story.inferred));
+
+    const catalogueFr = analysis.functional.find((item) => item.feature === 'Product or service catalogue');
+    assert.ok(catalogueFr);
+    assert.match(catalogueFr.requirements[2].text, /Expected size at launch: Under 20/);
+    assert.ok(catalogueFr.acceptance.length >= 1);
+    assert.ok(analysis.deferred.some((item) => /Stock or inventory tracking \(Phase 3/.test(item)));
+
+    assert.ok(analysis.nonFunctional.some((item) => /right-to-left layout for Arabic/.test(item)));
+    assert.ok(analysis.nonFunctional.some((item) => /formal WCAG audit not in scope/.test(item)));
+    assert.ok(analysis.data.entities.includes('Enquiry'));
+    assert.equal(analysis.delivery.milestones.length, 5);
+    assert.equal(analysis.delivery.milestones[4].week, plan.timeline.weeks);
+    assert.ok(analysis.risks.some((item) => /Brand materials are largely unknown/.test(item.risk)));
+    assert.ok(analysis.risks.some((item) => /All content comes from the client/.test(item.risk)));
+    assert.ok(analysis.openQuestions.some((item) => /Confirm the assumed user type/.test(item)));
+    assert.ok(analysis.openQuestions.some((item) => /screen readers/.test(item)));
+    assert.equal(buildAnalysis(hashimShop, null), null);
+});

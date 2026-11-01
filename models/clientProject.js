@@ -151,6 +151,16 @@ const clientProjectSchema = new mongoose.Schema({
         }, { _id: false }),
         default: null
     },
+    // Admin confirmation of the plan and the requirements analysis generated at that moment.
+    planConfirmed: {
+        type: new mongoose.Schema({
+            at: { type: Date, default: Date.now },
+            by: { type: String, default: '' },
+            planVersion: { type: Number, default: 1 }
+        }, { _id: false }),
+        default: null
+    },
+    analysis: { type: mongoose.Schema.Types.Mixed, default: null },
     requests: { type: [featureRequestSchema], default: [] }
 }, { timestamps: true });
 
@@ -210,9 +220,18 @@ class ClientProjectCollection {
         ).lean();
     }
 
-    // Stores a freshly generated plan (owner or admin triggered).
+    // Stores a freshly generated plan (owner or admin triggered). A new plan invalidates the previous confirmation.
     static async setPlan(id, plan) {
-        return clientProjectModel.findByIdAndUpdate(id, { $set: { plan, planDecision: null } }, { new: true }).lean();
+        return clientProjectModel.findByIdAndUpdate(id, { $set: { plan, planDecision: null, planConfirmed: null } }, { new: true }).lean();
+    }
+
+    // Admin confirms the plan: the requirements analysis is stored and the project moves to "proposal_sent".
+    static async confirmPlan(id, confirmedBy, analysis) {
+        return clientProjectModel.findOneAndUpdate(
+            { _id: id, plan: { $ne: null } },
+            { $set: { planConfirmed: { at: new Date(), by: confirmedBy, planVersion: analysis.basedOnPlanVersion }, analysis, status: 'proposal_sent' } },
+            { new: true }
+        ).lean();
     }
 
     // Client decision on the proposed plan. Accepting moves the project into review; "full scope" also raises the

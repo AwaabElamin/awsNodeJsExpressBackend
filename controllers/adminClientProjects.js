@@ -3,6 +3,7 @@ const clientProjects = require('../models/clientProject');
 const usersModel = require('../models/users');
 const { cleanText, cleanChoice } = require('../lib/clientProjectInput');
 const { buildPlan } = require('../lib/projectPlanner');
+const { buildAnalysis } = require('../lib/requirementsAnalysis');
 const { PROJECT_STATUSES, REQUEST_STATUSES, LIMITS } = require('../lib/clientProjectOptions');
 
 function statusAndNotes(body, statuses) {
@@ -89,6 +90,26 @@ exports.regeneratePlan = async (req, res, next) => {
         plan.version = ((existing.plan && existing.plan.version) || 0) + 1;
         const project = await clientProjects.setPlan(existing._id, plan);
         return res.json({ status: 'success', message: `Plan v${plan.version} generated`, data: await withOwner(project) });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// Admin confirms the automatic plan can go forward; the requirements analysis is generated from it.
+exports.confirmPlan = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+    }
+    try {
+        const existing = await clientProjects.getForAdmin(req.params.id);
+        if (!existing) return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+        if (!existing.plan) return res.status(409).json({ status: 'fail', message: 'Generate a plan before confirming it.' });
+        if (['active', 'completed', 'declined'].includes(existing.status)) {
+            return res.status(409).json({ status: 'fail', message: `The project is already ${existing.status}.` });
+        }
+        const analysis = buildAnalysis(existing, existing.plan, { confirmedBy: (req.admin && req.admin.email) || '' });
+        const project = await clientProjects.confirmPlan(existing._id, (req.admin && req.admin.email) || '', analysis);
+        return res.json({ status: 'success', message: 'Plan confirmed and requirements analysis created', data: await withOwner(project) });
     } catch (error) {
         return next(error);
     }

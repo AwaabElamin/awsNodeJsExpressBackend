@@ -9,6 +9,7 @@ router.get('/', adminClientProjectsController.list);
 router.get('/:id', adminClientProjectsController.get);
 router.patch('/:id', adminClientProjectsController.update);
 router.post('/:id/plan', adminClientProjectsController.regeneratePlan);
+router.post('/:id/plan/confirm', adminClientProjectsController.confirmPlan);
 router.patch('/:id/requests/:requestId', adminClientProjectsController.updateRequest);
 
 module.exports = router;
