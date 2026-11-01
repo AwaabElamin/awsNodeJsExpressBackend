@@ -1,7 +1,21 @@
 const mongoose = require('mongoose');
 const clientProjects = require('../models/clientProject');
 const { validateProjectInput, validateRequestInput } = require('../lib/clientProjectInput');
+const { buildPlan } = require('../lib/projectPlanner');
 const O = require('../lib/clientProjectOptions');
+
+// Generates and stores the automatic proposal for a saved project; returns the project with the plan attached.
+async function attachPlan(project) {
+    if (!project) return project;
+    const plan = buildPlan(project);
+    if (!plan) return project;
+    const saved = await clientProjects.setPlan(project._id, plan);
+    const { adminNotes, ...rest } = saved || { ...project, plan };
+    void adminNotes;
+    if (rest.requests) rest.requests = rest.requests.map(({ adminNotes: _ignored, ...request }) => request);
+    return rest;
+}
+exports.attachPlan = attachPlan;
 
 // Every vocabulary the closed form needs, grouped by SDLC phase, so the frontend never hard-codes options.
 const OPTIONS_PAYLOAD = {
@@ -103,7 +117,7 @@ exports.create = async (req, res, next) => {
     }
     try {
         const project = await clientProjects.createForOwner(req.client, fields);
-        return res.status(201).json({ status: 'success', message: 'Project request received', data: project });
+        return res.status(201).json({ status: 'success', message: 'Project request received', data: await attachPlan(project) });
     } catch (error) {
         return next(error);
     }
@@ -137,7 +151,42 @@ exports.updateMine = async (req, res, next) => {
             if (!existing) return res.status(404).json({ status: 'fail', message: 'Project not found.' });
             return res.status(409).json({ status: 'fail', code: 'PROJECT_LOCKED', message: 'This project is already under review and can no longer be edited. Add a feature request instead.' });
         }
-        return res.json({ status: 'success', message: 'Project updated', data: project });
+        return res.json({ status: 'success', message: 'Project updated', data: await attachPlan(project) });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// One-click client decision on the automatic proposal.
+exports.decidePlan = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+    }
+    const { choice } = req.body || {};
+    if (!['accept_phase1', 'full_scope', 'discuss'].includes(choice)) {
+        return res.status(400).json({ status: 'fail', message: 'Choose one of the offered options.' });
+    }
+    try {
+        const existing = await clientProjects.getForOwner(req.params.id, req.client._id);
+        if (!existing) return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+        if (!existing.plan) return res.status(409).json({ status: 'fail', message: 'There is no proposal for this project yet.' });
+        if (![...O.CLIENT_EDITABLE_STATUSES, 'reviewing'].includes(existing.status)) {
+            return res.status(409).json({ status: 'fail', code: 'PROJECT_LOCKED', message: 'This project has moved past the proposal stage.' });
+        }
+        let extra = {};
+        if (choice === 'full_scope') {
+            const option = (existing.plan.decisions || []).find((decision) => decision.key === 'full_scope');
+            if (!option) return res.status(400).json({ status: 'fail', message: 'The plan already covers the full scope.' });
+            // Raise the budget range so the whole scope fits one phase, then regenerate the plan on that basis.
+            const regenerated = buildPlan({ ...existing, budgetRange: option.budgetRange });
+            extra = { budgetRange: option.budgetRange, plan: regenerated };
+        }
+        const project = await clientProjects.recordPlanDecision(req.params.id, req.client._id, { choice, planVersion: existing.plan.version }, extra);
+        if (!project) return res.status(409).json({ status: 'fail', message: 'The decision could not be recorded.' });
+        const message = choice === 'discuss'
+            ? 'Thanks — Awaaab LLC will contact you to discuss the plan.'
+            : 'Plan accepted. Awaaab LLC will confirm the start date and send the agreement.';
+        return res.json({ status: 'success', message, data: project });
     } catch (error) {
         return next(error);
     }

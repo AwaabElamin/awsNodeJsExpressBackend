@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const clientProjects = require('../models/clientProject');
 const usersModel = require('../models/users');
 const { cleanText, cleanChoice } = require('../lib/clientProjectInput');
+const { buildPlan } = require('../lib/projectPlanner');
 const { PROJECT_STATUSES, REQUEST_STATUSES, LIMITS } = require('../lib/clientProjectOptions');
 
 function statusAndNotes(body, statuses) {
@@ -70,6 +71,24 @@ exports.get = async (req, res, next) => {
         const project = await clientProjects.getForAdmin(req.params.id);
         if (!project) return res.status(404).json({ status: 'fail', message: 'Project not found.' });
         return res.json({ status: 'success', data: await withOwner(project) });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// Regenerates the automatic plan (e.g. after weights change or for projects created before the planner existed).
+exports.regeneratePlan = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+    }
+    try {
+        const existing = await clientProjects.getForAdmin(req.params.id);
+        if (!existing) return res.status(404).json({ status: 'fail', message: 'Project not found.' });
+        const plan = buildPlan(existing);
+        if (!plan) return res.status(422).json({ status: 'fail', message: 'This project predates the guided form; ask the client to revise it before a plan can be generated.' });
+        plan.version = ((existing.plan && existing.plan.version) || 0) + 1;
+        const project = await clientProjects.setPlan(existing._id, plan);
+        return res.json({ status: 'success', message: `Plan v${plan.version} generated`, data: await withOwner(project) });
     } catch (error) {
         return next(error);
     }

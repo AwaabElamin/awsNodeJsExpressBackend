@@ -141,6 +141,16 @@ const clientProjectSchema = new mongoose.Schema({
     status: { type: String, enum: O.PROJECT_STATUSES, default: 'requested', index: true },
     clientMessage: shortText(O.LIMITS.clientMessage),
     adminNotes: shortText(O.LIMITS.adminNotes),
+    // Automatically generated proposal (see lib/projectPlanner.js) and the client's one-click decision on it.
+    plan: { type: mongoose.Schema.Types.Mixed, default: null },
+    planDecision: {
+        type: new mongoose.Schema({
+            choice: { type: String, enum: ['accept_phase1', 'full_scope', 'discuss'] },
+            at: { type: Date, default: Date.now },
+            planVersion: { type: Number, default: 1 }
+        }, { _id: false }),
+        default: null
+    },
     requests: { type: [featureRequestSchema], default: [] }
 }, { timestamps: true });
 
@@ -148,7 +158,7 @@ const clientProjectModel = mongoose.model('clientProjects', clientProjectSchema)
 
 // Clients never see internal admin notes, on the project or on individual requests.
 const CLIENT_PROJECTION = { adminNotes: 0, 'requests.adminNotes': 0 };
-const SUMMARY_PROJECTION = 'name type status targetDate budgetRange primaryGoal requests.status createdAt updatedAt';
+const SUMMARY_PROJECTION = 'name type status targetDate budgetRange primaryGoal requests.status planDecision plan.version createdAt updatedAt';
 
 function summarize(project) {
     const requests = Array.isArray(project.requests) ? project.requests : [];
@@ -193,9 +203,26 @@ class ClientProjectCollection {
         return clientProjectModel.findOneAndUpdate(
             { _id: id, ownerId, status: { $in: O.CLIENT_EDITABLE_STATUSES } },
             {
-                $set: { ...fields, status: 'requested', clientMessage: '' },
+                $set: { ...fields, status: 'requested', clientMessage: '', planDecision: null },
                 $unset: { summary: 1, problem: 1, outcome: 1, audience: 1, userTasks: 1, mustHaves: 1, reviewers: 1, otherDetails: 1, businessDescription: 1, goal: 1 }
             },
+            { new: true, runValidators: true, projection: CLIENT_PROJECTION }
+        ).lean();
+    }
+
+    // Stores a freshly generated plan (owner or admin triggered).
+    static async setPlan(id, plan) {
+        return clientProjectModel.findByIdAndUpdate(id, { $set: { plan, planDecision: null } }, { new: true }).lean();
+    }
+
+    // Client decision on the proposed plan. Accepting moves the project into review; "full scope" also raises the
+    // budget range so the plan can be regenerated as a single phase.
+    static async recordPlanDecision(id, ownerId, decision, extraFields = {}) {
+        const set = { planDecision: { choice: decision.choice, at: new Date(), planVersion: decision.planVersion || 1 }, ...extraFields };
+        if (decision.choice === 'accept_phase1' || decision.choice === 'full_scope') set.status = 'reviewing';
+        return clientProjectModel.findOneAndUpdate(
+            { _id: id, ownerId, status: { $in: [...O.CLIENT_EDITABLE_STATUSES, 'reviewing'] }, plan: { $ne: null } },
+            { $set: set },
             { new: true, runValidators: true, projection: CLIENT_PROJECTION }
         ).lean();
     }

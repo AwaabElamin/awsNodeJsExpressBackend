@@ -83,6 +83,20 @@ mockModule('../models/clientProject', {
         store.projects.push(project);
         calls.converted.push(project);
         return project;
+    },
+    setPlan: async (id, plan) => {
+        const project = store.projects.find((item) => String(item._id) === String(id));
+        if (!project) return null;
+        project.plan = plan;
+        project.planDecision = null;
+        return project;
+    },
+    recordPlanDecision: async (id, ownerId, decision, extra) => {
+        const project = ownedProject(id, ownerId);
+        if (!project || !project.plan) return null;
+        Object.assign(project, extra, { planDecision: { choice: decision.choice, at: new Date(), planVersion: decision.planVersion } });
+        if (decision.choice !== 'discuss') project.status = 'reviewing';
+        return project;
     }
 });
 mockModule('../models/clientBrief', {
@@ -323,6 +337,9 @@ test('a client can create a project, list it, and read it back without admin not
     assert.equal(created.statusCode, 201);
     assert.equal(created.body.data.name, 'Booking portal');
     assert.equal(String(created.body.data.ownerId), String(ids.client));
+    assert.ok(created.body.data.plan, 'an automatic plan is attached on creation');
+    assert.equal(created.body.data.plan.phases[0].number, 1);
+    assert.equal(created.body.data.adminNotes, undefined);
 
     const list = response();
     await clientProjects.listMine(req, list, assert.ifError);
@@ -336,6 +353,38 @@ test('a client can create a project, list it, and read it back without admin not
     const invalid = response();
     await clientProjects.getMine({ ...req, params: { id: 'not-an-id' } }, invalid, assert.ifError);
     assert.equal(invalid.statusCode, 404);
+});
+
+test('the client decides on the automatic plan with one click', async () => {
+    const { req } = await asClient(accounts.client.email);
+    const project = store.projects.find((item) => String(item._id) === String(ids.project));
+    assert.ok(project.plan);
+
+    const bad = response();
+    await clientProjects.decidePlan({ ...req, params: { id: String(ids.project) }, body: { choice: 'maybe' } }, bad, assert.ifError);
+    assert.equal(bad.statusCode, 400);
+
+    const fullScopeUnavailable = project.plan.decisions.some((decision) => decision.key === 'full_scope');
+    if (!fullScopeUnavailable) {
+        const noFull = response();
+        await clientProjects.decidePlan({ ...req, params: { id: String(ids.project) }, body: { choice: 'full_scope' } }, noFull, assert.ifError);
+        assert.equal(noFull.statusCode, 400);
+    }
+
+    const discuss = response();
+    await clientProjects.decidePlan({ ...req, params: { id: String(ids.project) }, body: { choice: 'discuss' } }, discuss, assert.ifError);
+    assert.equal(discuss.statusCode, 200);
+    assert.equal(project.planDecision.choice, 'discuss');
+    assert.equal(project.status, 'requested');
+
+    const accept = response();
+    await clientProjects.decidePlan({ ...req, params: { id: String(ids.project) }, body: { choice: 'accept_phase1' } }, accept, assert.ifError);
+    assert.equal(accept.statusCode, 200);
+    assert.equal(project.planDecision.choice, 'accept_phase1');
+    assert.equal(project.status, 'reviewing');
+    assert.match(accept.body.message, /Plan accepted/);
+    project.status = 'requested';
+    project.planDecision = null;
 });
 
 test('a client can add a feature request only to their own project', async () => {
