@@ -9,6 +9,9 @@ Auto-update policy:
 - If no files are changed in a request, keep this file updated anyway.
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
+Local note (2026-11-01, shutdown):
+- **COMPLETED:** Stopped the local backend `node app.js` on 3001 (PID 8352); port 3001 free. All source changes already committed and pushed on `dev` (latest `ec015f0`); this commit only updates `LAST_TASK.md`. Live Atlas data state: `lkjui` proposal_sent with analysis v1; `look`/`shhhshhh` requested with plans; `alfdkfgkg` needs_info. Next: tune planner constants to real pricing.
+
 Local note (2026-11-01, requirements analysis):
 - **COMPLETED:** `lib/requirementsAnalysis.js` — `buildAnalysis(project, plan)` produces scope, stakeholders, user stories (capability → story templates), functional requirements per Phase 1 feature (`FEATURE_REQUIREMENTS` with resolved details) plus acceptance criteria, NFRs, data entities (`FEATURE_ENTITIES`), design/asset status, milestones from the plan timeline, risks with mitigations, assumptions, open kickoff questions. `models/clientProject.js`: `planConfirmed`, `analysis`, `confirmPlan` (status → `proposal_sent`); `setPlan` clears the confirmation. `controllers/adminClientProjects.js`: `confirmPlan` (409 without a plan or when already active/completed/declined); route `POST /:id/plan/confirm`. Tests: 47 total, 46 pass, 1 pre-existing skip. README section added. Backend restarted on 3001; Hashim's `lkjui` (client-accepted Phase 1) confirmed → analysis v1 stored.
 
