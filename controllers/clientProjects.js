@@ -9,6 +9,7 @@ const OPTIONS_PAYLOAD = {
     planning: {
         industries: O.INDUSTRIES,
         businessSizes: O.BUSINESS_SIZES,
+        countries: O.COUNTRIES,
         primaryGoals: O.PRIMARY_GOALS,
         painPoints: O.PAIN_POINTS,
         successMeasures: O.SUCCESS_MEASURES,
@@ -21,6 +22,8 @@ const OPTIONS_PAYLOAD = {
         userRoleTypes: O.USER_ROLE_TYPES,
         userCounts: O.USER_COUNTS,
         userCapabilities: O.USER_CAPABILITIES,
+        capabilitiesByRole: O.CAPABILITIES_BY_ROLE,
+        devicesByType: O.DEVICES_BY_TYPE,
         featureCatalogue: O.FEATURE_CATALOGUE,
         featurePriorities: O.FEATURE_PRIORITIES,
         devices: O.DEVICES,
@@ -65,6 +68,7 @@ const OPTIONS_PAYLOAD = {
     requestStatuses: O.REQUEST_STATUSES,
     clientEditableStatuses: O.CLIENT_EDITABLE_STATUSES,
     limits: O.LIMITS,
+    maxChoices: O.MAX_CHOICES,
     minWords: O.MIN_WORDS
 };
 
@@ -82,7 +86,7 @@ exports.listMine = async (req, res, next) => {
 };
 
 exports.create = async (req, res, next) => {
-    const { fields, error } = validateProjectInput(req.body);
+    const { fields, error } = validateProjectInput(req.body, req.client);
     if (error) {
         return res.status(400).json({ status: 'fail', message: error });
     }
@@ -111,7 +115,7 @@ exports.updateMine = async (req, res, next) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
         return res.status(404).json({ status: 'fail', message: 'Project not found.' });
     }
-    const { fields, error } = validateProjectInput(req.body);
+    const { fields, error } = validateProjectInput(req.body, req.client);
     if (error) {
         return res.status(400).json({ status: 'fail', message: error });
     }

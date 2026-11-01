@@ -140,17 +140,17 @@ const validProject = {
     targetDate: '2026-12-15',
     timelineFlexibility: 'Some flexibility',
     decisionMakerRole: 'Me',
-    decisionMakerName: 'Dr. Amal',
+    decisionMakerName: 'Dr. Amal Hassan',
     contactMethod: 'WhatsApp',
     contactPhone: '+249 900 000 000',
     // 2 — Requirements
     userRoles: [
-        { role: 'Customer or visitor (no account)', count: '101–1,000', capabilities: ['Book an appointment or reservation', 'Receive notifications (email, SMS, WhatsApp)'] },
+        { role: 'Registered customer or member', count: '101–1,000', capabilities: ['Book an appointment or reservation', 'Receive notifications (email, SMS, WhatsApp)', 'Create an account and sign in'] },
         { role: 'Staff or employee', count: '1–10', capabilities: ['Approve or process orders and bookings', 'View reports and statistics'] }
     ],
     features: [
         { key: 'booking', priority: 'must', details: ['Appointments with staff'] },
-        { key: 'notifications', details: ['SMS', 'WhatsApp'], notes: 'Reminder one day before.' },
+        { key: 'notifications', details: ['SMS', 'WhatsApp'] },
         { key: 'other', customTitle: 'Dentist profile pages', priority: 'could' }
     ],
     devices: ['Mobile web', 'Desktop web', 'Mobile web'],
@@ -186,7 +186,7 @@ const gibberish = 'dskljfgdl lkdfkfvmc lkjdirjf llkjdfd lkmnvnnfiu lls;so0juf kk
 const validRequest = {
     kind: 'Add a new feature',
     relatedFeature: 'Notifications and reminders',
-    userRole: 'Customer or visitor (no account)',
+    userRole: 'Registered customer or member',
     summary: 'Send a second reminder two hours before the appointment.',
     outcomes: ['A notification is sent (email, SMS, WhatsApp)'],
     example: 'A patient with a 10:00 visit gets a text at 08:00.',
@@ -234,6 +234,23 @@ test('closed-form validation accepts a complete SDLC payload and rejects missing
     assert.match(validateProjectInput({ ...validProject, supportLevel: '' }).error, /Support after launch/);
     assert.match(validateProjectInput({ ...validProject, notes: gibberish }).error, /readable text/);
     assert.match(validateProjectInput({ ...validProject, targetDate: '15/12/2026' }).error, /Target date/);
+
+    // Consistency rules learned from a real "tick everything" submission.
+    assert.match(validateProjectInput({ ...validProject, painPoints: validProject.painPoints.concat(['No online presence at all', 'Data lives in spreadsheets or paper']) }).error, /at most 3/);
+    assert.match(validateProjectInput({ ...validProject, devices: ['Android app'] }).error, /Devices for a Web application/);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [{ role: 'Customer or visitor (no account)', count: '1–10', capabilities: ['Manage other users and permissions'] }] }).error, /does not fit "Customer or visitor/);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [validProject.userRoles[1], validProject.userRoles[1]] }).error, /added twice/);
+    assert.match(validateProjectInput({ ...validProject, country: 'google' }).error, /Country/);
+    assert.match(validateProjectInput({ ...validProject, country: 'Other', countryOther: 'Mars' }).error, /at least 2 words/);
+    assert.match(validateProjectInput({ ...validProject, contactPhone: '12' }).error, /7 to 15 digits/);
+    assert.match(validateProjectInput({ ...validProject, contactPhone: '' }).error, /phone number is required when you choose WhatsApp/);
+    assert.match(validateProjectInput({ ...validProject, existingSystems: ['None', 'WhatsApp groups'] }).error, /cannot be combined/);
+    assert.match(validateProjectInput({ ...validProject, existingWebsite: 'No website yet', existingWebsiteUrl: '', existingSystems: ['None'], dataMigration: 'Yes, a large amount' }).error, /no data to move/);
+    assert.match(validateProjectInput({ ...validProject, integrations: validProject.integrations.concat(['Maps or delivery tracking', 'Accounting or CRM', 'Scheduling or calendars']) }).error, /at most 4/);
+    assert.match(validateProjectInput({ ...validProject, notes: 'mnuyt gfrok lnhyt aewrtyn okjuygbh vcfredsa ljhyub' }).error, /readable text/);
+    const approverFromAccount = validateProjectInput({ ...validProject, decisionMakerRole: 'Me', decisionMakerName: '' }, { firstname: 'Hashim', lastname: 'Hash' });
+    assert.equal(approverFromAccount.fields.decisionMakerName, 'Hashim Hash');
+    assert.match(validateProjectInput({ ...validProject, decisionMakerRole: 'A manager or director', decisionMakerName: 'Mjuhgt' }).error, /at least 2 words/);
 
     assert.equal(validateRequestInput(validRequest, savedProjectShape).error, undefined);
     assert.equal(validateRequestInput({ ...validRequest, priority: undefined }, savedProjectShape).fields.priority, 'normal');

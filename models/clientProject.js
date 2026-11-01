@@ -71,6 +71,7 @@ const clientProjectSchema = new mongoose.Schema({
     industryOther: shortText(O.LIMITS.shortText),
     businessSize: optionalEnum(O.BUSINESS_SIZES),
     country: shortText(O.LIMITS.shortText),
+    countryOther: shortText(O.LIMITS.shortText),
     city: shortText(O.LIMITS.shortText),
     primaryGoal: optionalEnum(O.PRIMARY_GOALS),
     primaryGoalOther: shortText(O.LIMITS.shortText),
