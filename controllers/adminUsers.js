@@ -6,6 +6,7 @@ const usedCars = require('../models/autoUsedCar');
 const groceryProducts = require('../models/groceryProduct');
 const autoMessages = require('../models/autoMessage');
 const groceryMessages = require('../models/groceryMessage');
+const clientProjects = require('../models/clientProject');
 const { sendVerificationEmail } = require('../lib/mailer');
 
 const CONVERSATION_PLATFORMS = {
@@ -144,17 +145,19 @@ exports.getAccountOverview = async (req, res, next) => {
         if (!account) return res.status(404).json({ status: 'fail', message: 'Account not found.' });
 
         const email = String(account.email || '').trim().toLowerCase();
-        const [cars, products, autoThreads, groceryThreads] = await Promise.all([
+        const [cars, products, autoThreads, groceryThreads, projects] = await Promise.all([
             usedCars.getCarsForOwner(account._id, email),
             groceryProducts.getProductsForOwner(account._id, email),
             autoMessages.listForAccountAdmin(account),
-            groceryMessages.listForAccountAdmin(account)
+            groceryMessages.listForAccountAdmin(account),
+            clientProjects.listSummariesForOwnerAdmin(account._id)
         ]);
 
         return res.json({
             status: 'success',
             data: {
                 account,
+                projects,
                 listings: {
                     cars: cars.map((car) => ({
                         _id: car._id, make: car.make, model: car.model, year: car.year, color: car.color,

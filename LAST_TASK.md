@@ -2,12 +2,17 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-10-23
+Updated: 2026-11-01
 
 Auto-update policy:
 - Update this file at the end of every completed request.
 - If no files are changed in a request, keep this file updated anyway.
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
+
+Local note (2026-11-01):
+- **COMPLETED:** Added client project profiles. New `models/clientProject.js` (owner-scoped profile with stable field keys, enum vocabularies, embedded `requests[]` feature requests; clients never receive `adminNotes`), `lib/clientProjectOptions.js`, `lib/clientProjectInput.js` (shared validation), `middleware/requireClient.js` (`403 CLIENT_ROLE_REQUIRED` for Visitors), `controllers/clientProjects.js` + `routes/clientProjects.js` mounted at `/client-projects` (public `GET /options`; Client-only list/create/get/`POST /:id/requests`), `controllers/adminClientProjects.js` + `routes/adminClientProjects.js` at `/admin/client-projects` (list with `ownerId`/`status` filters, get with owner summary, `PATCH /:id` and `PATCH /:id/requests/:requestId` for `status`/`adminNotes`). `models/clientBrief.js` now exposes static methods and `status`/`projectId`; `controllers/clientBriefs.js` dropped the anonymous `submit` and added Admin `POST /client-briefs/:id/convert` (maps legacy label-keyed answers onto a project owned by the matching or selected Client; `422 CLIENT_ACCOUNT_REQUIRED` otherwise, `409` if already converted). `GET /admin/users/:id` includes `projects`. README section rewritten.
+- Validation: `node --test tests/*.test.js` → 41 tests, 40 pass, 1 pre-existing skip (new `tests/clientProjects.test.js`, 6 tests; `adminAccountControls` mock extended). Local backend restarted on 3001 against the Atlas DB; verified `/client-projects/options` 200, protected routes 401, `POST /client-briefs` 401. No deployment. Frontend counterpart in `ReactFrontAwaaabLLC` (`/user/projects*`, `/admin/projects*`).
+- Earlier today: started the backend locally with `PORT=3001 node app.js` for a review session (Docker Desktop off, so the isolated local Mongo was not used).
 
 Local note (2026-10-23):
 - Removed the PayPal marketplace checkout, seller onboarding, payment history, webhook/API routes, related backend configuration/docs, and integration tests at the user's request. Existing listing prices, stored records, cloud settings, and PayPal dashboard/webhook were left untouched. Backend suite passed (27, 1 skipped); vehicle price/location tests passed (6). Frontend preview was started for user review and then stopped. No deployment performed.

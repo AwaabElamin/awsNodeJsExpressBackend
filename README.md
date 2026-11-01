@@ -157,10 +157,18 @@ What changed
   against the real database. Application changes have not been publicly deployed.
   Registration confirmation still requires configured SMTP.
 
-## Client project briefs
+## Client projects and legacy project briefs
 
-- `POST /client-briefs` accepts client submissions from the public Awaaab project brief form.
-- `GET /client-briefs` requires a valid account token and an Admin role; the role is rechecked against the user record on each request.
+- Client project requests come from the signed-in Client workspace (`/client-projects`); the anonymous `POST /client-briefs` endpoint and the public `project-brief.html` form were retired.
+- `GET /client-projects/options` is public and returns the option vocabularies (project types, budget ranges, timeline flexibility, integrations, statuses, priorities).
+- `/client-projects` otherwise requires a valid account token **and** the `Client` role (`middleware/requireClient.js`); Visitors receive `403 CLIENT_ROLE_REQUIRED` until they create a workspace.
+  - `GET /client-projects` lists the caller's projects (summaries with request counts).
+  - `POST /client-projects` creates a project profile. `name` and `summary` are required; `type`, `budgetRange`, `timelineFlexibility`, and `integrations[]` must match the option vocabularies; `targetDate` is `YYYY-MM-DD`. Other long-form fields (`problem`, `outcome`, `audience`, `userTasks`, `references`, `mustHaves`, `futureFeatures`, `integrationDetails`, `contentMaterials`, `reviewers`, `otherDetails`) are optional and capped at 5000 characters.
+  - `GET /client-projects/:id` returns one owned project; `POST /client-projects/:id/requests` adds a feature request (`title`, `details` required; optional `reason`, `priority` low/normal/high, `targetDate`, `budgetRange`).
+  - Client responses never include `adminNotes` on the project or its requests.
+- `/admin/client-projects` requires Admin: `GET /` (optional `?ownerId=`/`?status=`), `GET /:id` (includes the owner account summary), `PATCH /:id` and `PATCH /:id/requests/:requestId` accept `status` and/or `adminNotes`. Project statuses: `requested`, `reviewing`, `proposal_sent`, `active`, `on_hold`, `completed`, `declined`. Request statuses: `requested`, `reviewing`, `approved`, `in_progress`, `completed`, `declined`.
+- `GET /admin/users/:id` now also returns `projects` (summaries) for the account.
+- `GET /client-briefs` (Admin) lists legacy public briefs; `POST /client-briefs/:id/convert` (Admin, optional `ownerId`) creates a project profile from a brief, mapping the stored label-keyed answers onto project fields. The owner is the `ownerId` account or the Client whose email matches the brief; otherwise `422 CLIENT_ACCOUNT_REQUIRED`. The brief is marked `status: 'converted'` with `projectId`.
 - `/admin/users` requires the same Admin authorization for account listing, Client creation, Client profile updates, and Client deletion. Responses never include password hashes or verification tokens.
 - Account listing includes the Admin record for visibility; the API only permits CRUD on `Client` records. Client creation requires email verification; roles, emails, and passwords cannot be changed through profile editing.
 - Admin account oversight (Clients and Visitors only; never the Admin record):

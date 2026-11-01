@@ -1,63 +1,98 @@
+const mongoose = require('mongoose');
 const ClientBrief = require('../models/clientBrief');
+const clientProjects = require('../models/clientProject');
+const usersModel = require('../models/users');
+const { validateProjectInput } = require('../lib/clientProjectInput');
+const { INTEGRATIONS } = require('../lib/clientProjectOptions');
 
-const MAX_FIELDS = 60;
-const MAX_VALUE_LENGTH = 5000;
+// Legacy public briefs stored answers under their on-screen labels; map them onto project profile fields.
+const LABEL_TO_FIELD = {
+    'Project name': 'name',
+    'Project type': 'type',
+    'Project idea': 'summary',
+    'Problem or opportunity': 'problem',
+    'Desired outcome': 'outcome',
+    'Audience': 'audience',
+    'Typical user tasks': 'userTasks',
+    'References': 'references',
+    'Must-have features': 'mustHaves',
+    'Future or optional features': 'futureFeatures',
+    'Integration details': 'integrationDetails',
+    'Content and materials': 'contentMaterials',
+    'Ideal launch or completion date': 'targetDate',
+    'Timeline flexibility': 'timelineFlexibility',
+    'Estimated budget': 'budgetRange',
+    'Reviewers and decision-makers': 'reviewers',
+    'Other details or constraints': 'otherDetails'
+};
 
-function normalizeResponses(value) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-    const entries = Object.entries(value);
-    if (entries.length > MAX_FIELDS) return null;
-
-    const responses = {};
-    for (const [key, answer] of entries) {
-        if (!key.trim() || key.length > 100) return null;
-        if (typeof answer === 'string' && answer.length <= MAX_VALUE_LENGTH) {
-            responses[key] = answer.trim();
-        } else if (Array.isArray(answer) && answer.every((item) => typeof item === 'string' && item.length <= 200)) {
-            responses[key] = answer.map((item) => item.trim());
-        } else {
-            return null;
-        }
+function briefToProjectInput(brief) {
+    const responses = brief.responses && typeof brief.responses === 'object' ? brief.responses : {};
+    const input = {};
+    for (const [label, field] of Object.entries(LABEL_TO_FIELD)) {
+        const value = responses[label];
+        if (typeof value === 'string' && value.trim()) input[field] = value;
     }
-    return responses;
+    const integrations = responses['Integrations'];
+    const list = Array.isArray(integrations) ? integrations : typeof integrations === 'string' && integrations ? [integrations] : [];
+    input.integrations = list.filter((item) => INTEGRATIONS.includes(item));
+
+    input.name = input.name || brief.projectName;
+    input.summary = input.summary || responses['Project idea'] || '';
+
+    const contact = [
+        `Submitted through the public project brief on ${new Date(brief.createdAt).toISOString().slice(0, 10)}.`,
+        `Name: ${brief.clientName}`,
+        brief.company ? `Company: ${brief.company}` : '',
+        typeof responses['Phone number'] === 'string' && responses['Phone number'] ? `Phone: ${responses['Phone number']}` : '',
+        typeof responses['Your role in the project'] === 'string' && responses['Your role in the project'] ? `Role: ${responses['Your role in the project']}` : ''
+    ].filter(Boolean).join('\n');
+    input.otherDetails = [input.otherDetails, contact].filter(Boolean).join('\n\n');
+    return input;
 }
 
-exports.submit = async (req, res, next) => {
-    const responses = normalizeResponses(req.body?.responses);
-    if (!responses) {
-        return res.status(400).json({ status: 'fail', message: 'Invalid project brief responses' });
-    }
-
-    const clientName = responses['Your name'];
-    const clientEmail = responses['Email address'];
-    const projectName = responses['Project name'];
-    const projectIdea = responses['Project idea'];
-    if (!clientName || !clientEmail || !projectName || !projectIdea ||
-        typeof clientName !== 'string' || typeof clientEmail !== 'string' ||
-        typeof projectName !== 'string' || typeof projectIdea !== 'string' ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
-        return res.status(400).json({ status: 'fail', message: 'Name, valid email, project name, and project description are required' });
-    }
-
+exports.list = async (req, res, next) => {
     try {
-        const brief = await ClientBrief.create({
-            clientName,
-            clientEmail,
-            company: typeof responses['Company or organization'] === 'string' ? responses['Company or organization'] : '',
-            projectName,
-            projectType: typeof responses['Project type'] === 'string' ? responses['Project type'] : '',
-            responses
-        });
-        return res.status(201).json({ status: 'success', message: 'Project brief received', id: brief._id });
+        const briefs = await ClientBrief.listForAdmin();
+        return res.json({ status: 'success', data: briefs });
     } catch (error) {
         return next(error);
     }
 };
 
-exports.list = async (req, res, next) => {
+exports.convert = async (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(404).json({ status: 'fail', message: 'Project brief not found.' });
+    }
+    const { ownerId } = req.body || {};
+    if (ownerId !== undefined && !mongoose.isValidObjectId(ownerId)) {
+        return res.status(400).json({ status: 'fail', message: 'ownerId is not valid.' });
+    }
+
     try {
-        const briefs = await ClientBrief.find({}).sort({ createdAt: -1 }).lean();
-        return res.json({ status: 'success', data: briefs });
+        const brief = await ClientBrief.getForAdmin(req.params.id);
+        if (!brief) return res.status(404).json({ status: 'fail', message: 'Project brief not found.' });
+        if (brief.status === 'converted' || brief.projectId) {
+            return res.status(409).json({ status: 'fail', message: 'This brief has already been converted.', projectId: brief.projectId });
+        }
+
+        const owner = ownerId
+            ? await usersModel.getManagedAccountForAdmin(ownerId)
+            : await usersModel.findByEmail(String(brief.clientEmail || '').trim().toLowerCase());
+        if (!owner || owner.role !== 'Client') {
+            return res.status(422).json({
+                status: 'fail',
+                code: 'CLIENT_ACCOUNT_REQUIRED',
+                message: `No Client account matches ${brief.clientEmail}. Create the client account first, or choose an existing client.`
+            });
+        }
+
+        const { fields, error } = validateProjectInput(briefToProjectInput(brief));
+        if (error) return res.status(422).json({ status: 'fail', message: `The brief could not be converted: ${error}` });
+
+        const project = await clientProjects.createFromBriefForAdmin(owner, brief._id, fields);
+        const updatedBrief = await ClientBrief.markConverted(brief._id, project._id);
+        return res.status(201).json({ status: 'success', message: 'Project profile created from brief', data: { project, brief: updatedBrief } });
     } catch (error) {
         return next(error);
     }
