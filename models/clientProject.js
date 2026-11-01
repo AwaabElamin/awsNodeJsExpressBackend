@@ -1,96 +1,153 @@
 const mongoose = require('mongoose');
-const {
-    PROJECT_TYPES,
-    BUDGET_RANGES,
-    TIMELINE_FLEXIBILITY,
-    INTEGRATIONS,
-    DEVICES,
-    LANGUAGES,
-    CONTENT_READINESS,
-    CONTACT_METHODS,
-    PROJECT_STATUSES,
-    REQUEST_STATUSES,
-    CLIENT_EDITABLE_STATUSES,
-    REQUEST_PRIORITIES,
-    FEATURE_PRIORITIES,
-    PROJECT_TEXT_FIELDS,
-    LIMITS
-} = require('../lib/clientProjectOptions');
+const O = require('../lib/clientProjectOptions');
 
 const optionalEnum = (values) => ({ type: String, enum: [...values, ''], default: '' });
-const longText = (maxlength) => ({ type: String, trim: true, maxlength, default: '' });
+const shortText = (maxlength) => ({ type: String, trim: true, maxlength, default: '' });
 const enumList = (values) => ({ type: [{ type: String, enum: values }], default: [] });
+const LEGACY_TEXT = 5000;
 
+// SDLC 2 — Requirements: closed role type, closed capabilities, approximate count.
+// Legacy `name`/`goals` kept so projects created before the closed form still read back.
 const userRoleSchema = new mongoose.Schema({
-    name: { type: String, required: true, trim: true, maxlength: LIMITS.roleName },
-    goals: { type: String, required: true, trim: true, maxlength: LIMITS.roleGoals }
+    role: optionalEnum(O.USER_ROLE_TYPES),
+    roleOther: shortText(O.LIMITS.shortText),
+    count: optionalEnum(O.USER_COUNTS),
+    capabilities: enumList(O.USER_CAPABILITIES),
+    name: shortText(LEGACY_TEXT),
+    goals: shortText(LEGACY_TEXT)
 }, { _id: false });
 
 const featureSchema = new mongoose.Schema({
-    title: { type: String, required: true, trim: true, maxlength: LIMITS.featureTitle },
-    description: { type: String, required: true, trim: true, maxlength: LIMITS.featureDescription },
-    priority: { type: String, enum: FEATURE_PRIORITIES, default: 'must' }
+    key: shortText(O.LIMITS.shortText),
+    label: shortText(160),
+    customTitle: shortText(O.LIMITS.shortText),
+    priority: { type: String, enum: O.FEATURE_PRIORITIES, default: 'must' },
+    details: { type: [String], default: [] },
+    notes: shortText(O.LIMITS.featureNotes),
+    title: shortText(LEGACY_TEXT),
+    description: shortText(LEGACY_TEXT)
 }, { _id: false });
 
+const referenceSchema = new mongoose.Schema({
+    url: shortText(O.LIMITS.url),
+    likes: enumList(O.REFERENCE_LIKES)
+}, { _id: false });
+
+const assetsFields = {};
+for (const item of O.ASSET_ITEMS) assetsFields[item] = optionalEnum(O.ASSET_STATUSES);
+const assetsSchema = new mongoose.Schema(assetsFields, { _id: false });
+
 const featureRequestSchema = new mongoose.Schema({
-    title: { type: String, required: true, trim: true, maxlength: LIMITS.requestTitle },
-    userRole: longText(LIMITS.roleName),
-    details: { type: String, required: true, trim: true, maxlength: LIMITS.requestDetails },
-    reason: longText(LIMITS.requestReason),
-    acceptance: longText(LIMITS.requestAcceptance),
-    area: longText(LIMITS.requestArea),
-    priority: { type: String, enum: REQUEST_PRIORITIES, default: 'normal' },
+    kind: optionalEnum(O.REQUEST_KINDS),
+    relatedFeature: shortText(160),
+    userRole: shortText(160),
+    summary: shortText(O.LIMITS.requestSummary),
+    outcomes: enumList(O.REQUEST_OUTCOMES),
+    outcomesOther: shortText(O.LIMITS.shortText),
+    example: shortText(O.LIMITS.requestExample),
+    priority: { type: String, enum: O.REQUEST_PRIORITIES, default: 'normal' },
     targetDate: { type: Date, default: null },
-    budgetRange: optionalEnum(BUDGET_RANGES),
-    status: { type: String, enum: REQUEST_STATUSES, default: 'requested' },
-    // Admin → client questions (visible to the client); adminNotes stay internal.
-    clientMessage: longText(LIMITS.clientMessage),
-    adminNotes: longText(LIMITS.adminNotes)
+    budgetRange: optionalEnum(O.BUDGET_RANGES),
+    status: { type: String, enum: O.REQUEST_STATUSES, default: 'requested' },
+    clientMessage: shortText(O.LIMITS.clientMessage),
+    adminNotes: shortText(O.LIMITS.adminNotes),
+    // Legacy free-text request fields.
+    title: shortText(160),
+    details: shortText(LEGACY_TEXT),
+    reason: shortText(LEGACY_TEXT),
+    acceptance: shortText(LEGACY_TEXT),
+    area: shortText(160)
 }, { timestamps: true });
 
-const projectFields = {
+const clientProjectSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     ownerEmail: { type: String, trim: true, lowercase: true, maxlength: 254 },
     briefId: { type: mongoose.Schema.Types.ObjectId, ref: 'clientBriefs', default: null },
-    name: { type: String, required: true, trim: true, maxlength: LIMITS.name },
-    type: optionalEnum(PROJECT_TYPES),
-    businessDescription: longText(LIMITS.text),
-    goal: longText(LIMITS.goal),
-    summary: { type: String, required: true, trim: true, maxlength: LIMITS.summary },
-    problem: longText(LIMITS.text),
-    outcome: longText(LIMITS.text),
+    name: { type: String, required: true, trim: true, maxlength: 160 },
+    type: optionalEnum(O.PROJECT_TYPES),
+
+    // 1 — Planning
+    industry: optionalEnum(O.INDUSTRIES),
+    industryOther: shortText(O.LIMITS.shortText),
+    businessSize: optionalEnum(O.BUSINESS_SIZES),
+    country: shortText(O.LIMITS.shortText),
+    city: shortText(O.LIMITS.shortText),
+    primaryGoal: optionalEnum(O.PRIMARY_GOALS),
+    primaryGoalOther: shortText(O.LIMITS.shortText),
+    secondaryGoals: enumList(O.PRIMARY_GOALS),
+    painPoints: enumList(O.PAIN_POINTS),
+    painPointsOther: shortText(O.LIMITS.shortText),
+    successMeasures: enumList(O.SUCCESS_MEASURES),
+    budgetRange: optionalEnum(O.BUDGET_RANGES),
+    targetDate: { type: Date, default: null },
+    timelineFlexibility: optionalEnum(O.TIMELINE_FLEXIBILITY),
+    decisionMakerRole: optionalEnum(O.DECISION_MAKER_ROLES),
+    decisionMakerName: shortText(O.LIMITS.shortText),
+    contactMethod: optionalEnum(O.CONTACT_METHODS),
+    contactPhone: shortText(O.LIMITS.phone),
+
+    // 2 — Requirements
     userRoles: { type: [userRoleSchema], default: [] },
     features: { type: [featureSchema], default: [] },
-    devices: enumList(DEVICES),
-    languages: enumList(LANGUAGES),
-    contentReadiness: optionalEnum(CONTENT_READINESS),
-    integrations: enumList(INTEGRATIONS),
-    targetDate: { type: Date, default: null },
-    timelineFlexibility: optionalEnum(TIMELINE_FLEXIBILITY),
-    budgetRange: optionalEnum(BUDGET_RANGES),
-    decisionMaker: longText(LIMITS.name),
-    contactMethod: optionalEnum(CONTACT_METHODS),
-    contactPhone: longText(LIMITS.phone),
-    // Legacy free-text fields kept so projects created before the structured form still display.
-    audience: longText(LIMITS.text),
-    userTasks: longText(LIMITS.text),
-    mustHaves: longText(LIMITS.text),
-    reviewers: longText(LIMITS.name),
-    status: { type: String, enum: PROJECT_STATUSES, default: 'requested', index: true },
-    clientMessage: longText(LIMITS.clientMessage),
-    adminNotes: longText(LIMITS.adminNotes),
-    requests: { type: [featureRequestSchema], default: [] }
-};
-for (const field of PROJECT_TEXT_FIELDS) {
-    projectFields[field] = longText(LIMITS.text);
-}
+    devices: enumList(O.DEVICES),
+    languages: enumList(O.LANGUAGES),
+    languagesOther: shortText(O.LIMITS.shortText),
+    accessibility: optionalEnum(O.ACCESSIBILITY),
 
-const clientProjectSchema = new mongoose.Schema(projectFields, { timestamps: true });
+    // 3 — Design
+    designStyle: optionalEnum(O.DESIGN_STYLES),
+    references: { type: [referenceSchema], default: [] },
+    assets: { type: assetsSchema, default: () => ({}) },
+
+    // 4 — Development
+    existingWebsite: optionalEnum(O.EXISTING_WEBSITE),
+    existingWebsiteUrl: shortText(O.LIMITS.url),
+    existingSystems: enumList(O.EXISTING_SYSTEMS),
+    existingSystemsOther: shortText(O.LIMITS.shortText),
+    dataMigration: optionalEnum(O.DATA_MIGRATION),
+    hostingPreference: optionalEnum(O.HOSTING_PREFERENCE),
+    contentProvider: optionalEnum(O.CONTENT_PROVIDER),
+    integrations: enumList(O.INTEGRATIONS),
+
+    // 5 — Testing
+    uatTesters: enumList(O.UAT_TESTERS),
+    testData: optionalEnum(O.TEST_DATA),
+    acceptanceMethod: optionalEnum(O.ACCEPTANCE_METHOD),
+
+    // 6 — Deployment
+    launchApproach: optionalEnum(O.LAUNCH_APPROACH),
+    trainingNeeds: optionalEnum(O.TRAINING_NEEDS),
+
+    // 7 — Maintenance
+    contentMaintainer: optionalEnum(O.CONTENT_MAINTAINER),
+    supportLevel: optionalEnum(O.SUPPORT_LEVEL),
+    updateFrequency: optionalEnum(O.UPDATE_FREQUENCY),
+
+    notes: shortText(O.LIMITS.notes),
+
+    // Legacy free-text fields (projects and converted briefs created before the closed form).
+    summary: shortText(LEGACY_TEXT),
+    problem: shortText(LEGACY_TEXT),
+    outcome: shortText(LEGACY_TEXT),
+    audience: shortText(LEGACY_TEXT),
+    userTasks: shortText(LEGACY_TEXT),
+    mustHaves: shortText(LEGACY_TEXT),
+    reviewers: shortText(160),
+    otherDetails: shortText(LEGACY_TEXT),
+    businessDescription: shortText(LEGACY_TEXT),
+    goal: shortText(200),
+
+    status: { type: String, enum: O.PROJECT_STATUSES, default: 'requested', index: true },
+    clientMessage: shortText(O.LIMITS.clientMessage),
+    adminNotes: shortText(O.LIMITS.adminNotes),
+    requests: { type: [featureRequestSchema], default: [] }
+}, { timestamps: true });
+
 const clientProjectModel = mongoose.model('clientProjects', clientProjectSchema);
 
 // Clients never see internal admin notes, on the project or on individual requests.
 const CLIENT_PROJECTION = { adminNotes: 0, 'requests.adminNotes': 0 };
-const SUMMARY_PROJECTION = 'name type status targetDate budgetRange requests.status createdAt updatedAt';
+const SUMMARY_PROJECTION = 'name type status targetDate budgetRange primaryGoal requests.status createdAt updatedAt';
 
 function summarize(project) {
     const requests = Array.isArray(project.requests) ? project.requests : [];
@@ -98,6 +155,7 @@ function summarize(project) {
         _id: project._id,
         name: project.name,
         type: project.type,
+        primaryGoal: project.primaryGoal,
         status: project.status,
         targetDate: project.targetDate,
         budgetRange: project.budgetRange,
@@ -128,12 +186,15 @@ class ClientProjectCollection {
         return clientProjectModel.findOne({ _id: id, ownerId }, CLIENT_PROJECTION).lean();
     }
 
-    // Owners may revise a project only while it is still being clarified. Re-submitting clears the
-    // admin's question and puts the project back in the review queue.
+    // Owners may revise a project only while it is still being clarified; resubmitting clears the
+    // admin's question, wipes legacy free-text answers, and returns the project to the review queue.
     static async updateForOwner(id, ownerId, fields) {
         return clientProjectModel.findOneAndUpdate(
-            { _id: id, ownerId, status: { $in: CLIENT_EDITABLE_STATUSES } },
-            { $set: { ...fields, status: 'requested', clientMessage: '' } },
+            { _id: id, ownerId, status: { $in: O.CLIENT_EDITABLE_STATUSES } },
+            {
+                $set: { ...fields, status: 'requested', clientMessage: '' },
+                $unset: { summary: 1, problem: 1, outcome: 1, audience: 1, userTasks: 1, mustHaves: 1, reviewers: 1, otherDetails: 1, businessDescription: 1, goal: 1 }
+            },
             { new: true, runValidators: true, projection: CLIENT_PROJECTION }
         ).lean();
     }
@@ -152,7 +213,7 @@ class ClientProjectCollection {
             set[`requests.$.${key}`] = value;
         }
         return clientProjectModel.findOneAndUpdate(
-            { _id: id, ownerId, requests: { $elemMatch: { _id: requestId, status: { $in: CLIENT_EDITABLE_STATUSES } } } },
+            { _id: id, ownerId, requests: { $elemMatch: { _id: requestId, status: { $in: O.CLIENT_EDITABLE_STATUSES } } } },
             { $set: set },
             { new: true, runValidators: true, projection: CLIENT_PROJECTION }
         ).lean();

@@ -125,43 +125,75 @@ async function asClient(email) {
 }
 
 const validProject = {
+    // 1 — Planning
     name: '  Booking portal  ',
     type: 'Web application',
-    businessDescription: 'We run a dental clinic with three dentists and a front desk in Khartoum.',
-    goal: 'Let patients book and manage appointments online without calling.',
-    summary: 'Patients should be able to see available times, book an appointment, receive a confirmation, and reschedule if needed. The front desk sees the daily schedule.',
-    problem: 'Today the front desk takes all bookings by phone, which causes double bookings and missed calls.',
-    outcome: 'Fewer phone calls, no double bookings, and patients confirm their own appointments.',
+    industry: 'Healthcare or clinic',
+    businessSize: '2–10 people',
+    country: 'Sudan',
+    city: 'Khartoum',
+    primaryGoal: 'Take bookings or appointments online',
+    secondaryGoals: ['Reduce manual work for my team'],
+    painPoints: ['Everything is handled by phone or WhatsApp', 'Orders or bookings get lost or doubled'],
+    successMeasures: ['Fewer phone calls and messages', 'Fewer errors (double bookings, wrong orders)'],
+    budgetRange: '$5,000–$10,000',
+    targetDate: '2026-12-15',
+    timelineFlexibility: 'Some flexibility',
+    decisionMakerRole: 'Me',
+    decisionMakerName: 'Dr. Amal',
+    contactMethod: 'WhatsApp',
+    contactPhone: '+249 900 000 000',
+    // 2 — Requirements
     userRoles: [
-        { name: 'Patient', goals: 'Find a free slot, book it, and get a reminder before the visit.' },
-        { name: 'Front desk', goals: 'See the daily schedule and move or cancel appointments.' }
+        { role: 'Customer or visitor (no account)', count: '101–1,000', capabilities: ['Book an appointment or reservation', 'Receive notifications (email, SMS, WhatsApp)'] },
+        { role: 'Staff or employee', count: '1–10', capabilities: ['Approve or process orders and bookings', 'View reports and statistics'] }
     ],
     features: [
-        { title: 'Online booking', description: 'Patient picks a dentist, sees free slots for the next two weeks, and books one.', priority: 'must' },
-        { title: 'SMS reminder', description: 'The system sends a reminder one day before the appointment with a cancel link.' }
+        { key: 'booking', priority: 'must', details: ['Appointments with staff'] },
+        { key: 'notifications', details: ['SMS', 'WhatsApp'], notes: 'Reminder one day before.' },
+        { key: 'other', customTitle: 'Dentist profile pages', priority: 'could' }
     ],
     devices: ['Mobile web', 'Desktop web', 'Mobile web'],
     languages: ['Arabic', 'English'],
-    contentReadiness: 'Some content is ready; the rest needs work',
+    accessibility: 'Not required',
+    // 3 — Design
+    designStyle: 'Clean and minimal',
+    references: [{ url: 'example-clinic.com', likes: ['Layout and structure'] }],
+    assets: { logo: 'have', text: 'need', photos: 'have', domain: 'have', hosting: 'not_sure', brandColors: 'need' },
+    // 4 — Development
+    existingWebsite: 'Yes, replace it',
+    existingWebsiteUrl: 'https://old-clinic.example.com',
+    existingSystems: ['Spreadsheets (Excel or Google Sheets)', 'WhatsApp groups'],
+    dataMigration: 'Yes, a small amount (under 1,000 records)',
+    hostingPreference: 'Awaaab LLC hosts and manages it',
+    contentProvider: 'We provide some; Awaaab LLC creates the rest',
     integrations: ['Email or messaging', 'Payments or billing', 'Email or messaging'],
-    targetDate: '2026-12-15',
-    timelineFlexibility: 'Some flexibility',
-    budgetRange: '$5,000–$10,000',
-    decisionMaker: 'Dr. Amal, clinic owner',
-    contactMethod: 'WhatsApp',
-    contactPhone: '+249 900 000 000'
+    // 5 — Testing
+    uatTesters: ['Me', 'My staff'],
+    testData: 'We can provide real sample data',
+    acceptanceMethod: 'A live demo session together',
+    // 6 — Deployment
+    launchApproach: 'Soft launch to a small group first',
+    trainingNeeds: 'One training session for my team',
+    // 7 — Maintenance
+    contentMaintainer: 'My team updates content ourselves',
+    supportLevel: 'Monthly maintenance plan',
+    updateFrequency: 'Weekly',
+    notes: 'Ramadan hours differ from the rest of the year.'
 };
 const gibberish = 'dskljfgdl lkdfkfvmc lkjdirjf llkjdfd lkmnvnnfiu lls;so0juf kkkd j ;ljfkjfdiin l;s;djj knvvv llkdhy kdkdhg llskdhg assdf kkfhht kkjhf kkdjhg';
 
 const validRequest = {
-    title: 'SMS reminders',
-    userRole: 'Patient',
-    details: 'One day before the appointment, text the patient the time, the dentist name, and a link to cancel.',
-    reason: 'Patients forget appointments and we lose the slot.',
-    acceptance: 'A test patient receives the SMS 24 hours before and the cancel link works.',
+    kind: 'Add a new feature',
+    relatedFeature: 'Notifications and reminders',
+    userRole: 'Customer or visitor (no account)',
+    summary: 'Send a second reminder two hours before the appointment.',
+    outcomes: ['A notification is sent (email, SMS, WhatsApp)'],
+    example: 'A patient with a 10:00 visit gets a text at 08:00.',
     priority: 'high',
     targetDate: '2027-01-10'
 };
+const savedProjectShape = { features: validProject.features.map((f) => ({ ...f, label: f.key === 'other' ? 'Something else (name it)' : f.key === 'booking' ? 'Online booking or appointments' : 'Notifications and reminders' })), userRoles: validProject.userRoles };
 
 test('readable-text check rejects keyboard mashing but accepts real English and Arabic', () => {
     assert.equal(isReadableText(gibberish), false);
@@ -170,34 +202,47 @@ test('readable-text check rejects keyboard mashing but accepts real English and 
     assert.equal(isReadableText('ok'), true);
 });
 
-test('project input validation trims, dedupes, enforces structure and rejects unknown options', () => {
+test('closed-form validation accepts a complete SDLC payload and rejects missing or unknown choices', () => {
     const ok = validateProjectInput(validProject);
-    assert.equal(ok.error, undefined);
+    assert.equal(ok.error, undefined, ok.error);
     assert.equal(ok.fields.name, 'Booking portal');
     assert.deepEqual(ok.fields.integrations, ['Email or messaging', 'Payments or billing']);
     assert.deepEqual(ok.fields.devices, ['Mobile web', 'Desktop web']);
     assert.equal(ok.fields.targetDate.toISOString(), '2026-12-15T00:00:00.000Z');
     assert.equal(ok.fields.userRoles.length, 2);
+    assert.equal(ok.fields.features[0].label, 'Online booking or appointments');
     assert.equal(ok.fields.features[1].priority, 'must');
-    assert.equal(ok.fields.successMetrics, '');
+    assert.equal(ok.fields.features[2].customTitle, 'Dentist profile pages');
+    assert.equal(ok.fields.references[0].url, 'https://example-clinic.com/');
+    assert.equal(ok.fields.assets.hosting, 'not_sure');
+    assert.equal(ok.fields.industryOther, '');
 
-    assert.match(validateProjectInput({ name: 'x' }).error, /Project type is required/);
-    assert.match(validateProjectInput({ ...validProject, summary: gibberish }).error, /does not look like readable text/);
-    assert.match(validateProjectInput({ ...validProject, summary: 'Too short.' }).error, /at least 15 words/);
+    assert.match(validateProjectInput({ name: 'x' }).error, /Project type/);
+    assert.match(validateProjectInput({ ...validProject, industry: 'Other' }).error, /Industry \(other\) is required/);
+    assert.match(validateProjectInput({ ...validProject, primaryGoal: 'Get rich' }).error, /Primary goal/);
+    assert.match(validateProjectInput({ ...validProject, painPoints: [] }).error, /What is difficult today/);
     assert.match(validateProjectInput({ ...validProject, userRoles: [] }).error, /at least one type of user/);
-    assert.match(validateProjectInput({ ...validProject, features: [{ title: 'Booking', description: 'short' }] }).error, /at least 8 words/);
-    assert.match(validateProjectInput({ ...validProject, devices: [] }).error, /devices/);
-    assert.match(validateProjectInput({ ...validProject, contentReadiness: '' }).error, /Content readiness is required/);
-    assert.match(validateProjectInput({ ...validProject, type: 'Spaceship' }).error, /Project type/);
-    assert.match(validateProjectInput({ ...validProject, integrations: ['Blockchain'] }).error, /integrations/i);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [{ role: 'Staff or employee', count: '1–10', capabilities: [] }] }).error, /what they can do/);
+    assert.match(validateProjectInput({ ...validProject, features: [{ key: 'teleport' }] }).error, /not in the feature list/);
+    assert.match(validateProjectInput({ ...validProject, features: [{ key: 'offline' }] }).error, /not available for a Web application/);
+    assert.match(validateProjectInput({ ...validProject, features: [{ key: 'payments' }] }).error, /Which payment methods/);
+    assert.match(validateProjectInput({ ...validProject, features: [{ key: 'other', customTitle: gibberish.slice(0, 60) }] }).error, /readable text/);
+    assert.match(validateProjectInput({ ...validProject, devices: [] }).error, /Devices/);
+    assert.match(validateProjectInput({ ...validProject, assets: { ...validProject.assets, domain: '' } }).error, /Domain name/);
+    assert.match(validateProjectInput({ ...validProject, existingWebsite: 'Yes, keep it and extend it', existingWebsiteUrl: '' }).error, /Existing website link is required/);
+    assert.match(validateProjectInput({ ...validProject, references: [{ url: 'not a url', likes: ['Colours'] }] }).error, /valid web address/);
+    assert.match(validateProjectInput({ ...validProject, supportLevel: '' }).error, /Support after launch/);
+    assert.match(validateProjectInput({ ...validProject, notes: gibberish }).error, /readable text/);
     assert.match(validateProjectInput({ ...validProject, targetDate: '15/12/2026' }).error, /Target date/);
 
-    assert.equal(validateRequestInput(validRequest).error, undefined);
-    assert.equal(validateRequestInput({ ...validRequest, priority: undefined }).fields.priority, 'normal');
-    assert.match(validateRequestInput({ title: 'Dark mode' }).error, /Who uses this feature is required/);
-    assert.match(validateRequestInput({ ...validRequest, acceptance: '' }).error, /How we know it is done is required/);
-    assert.match(validateRequestInput({ ...validRequest, details: gibberish }).error, /readable text/);
-    assert.match(validateRequestInput({ ...validRequest, priority: 'urgent' }).error, /Priority/);
+    assert.equal(validateRequestInput(validRequest, savedProjectShape).error, undefined);
+    assert.equal(validateRequestInput({ ...validRequest, priority: undefined }, savedProjectShape).fields.priority, 'normal');
+    assert.match(validateRequestInput({ ...validRequest, relatedFeature: 'Teleport' }, savedProjectShape).error, /Which feature it concerns/);
+    assert.match(validateRequestInput({ ...validRequest, userRole: 'Aliens' }, savedProjectShape).error, /Who it is for/);
+    assert.match(validateRequestInput({ ...validRequest, summary: 'Too short' }, savedProjectShape).error, /at least 6 words/);
+    assert.match(validateRequestInput({ ...validRequest, summary: gibberish.slice(0, 120) }, savedProjectShape).error, /readable text/);
+    assert.match(validateRequestInput({ ...validRequest, outcomes: [] }, savedProjectShape).error, /What should be true/);
+    assert.match(validateRequestInput({ ...validRequest, priority: 'urgent' }, savedProjectShape).error, /Priority/);
 });
 
 test('visitors are refused with CLIENT_ROLE_REQUIRED and anonymous callers get 401', async () => {
@@ -259,7 +304,7 @@ test('a client can add a feature request only to their own project', async () =>
     await clientProjects.addRequest({ ...owner.req, params: { id: String(ids.project) }, body: request }, ok, assert.ifError);
     assert.equal(ok.statusCode, 201);
     assert.equal(ok.body.data.requests.length, 1);
-    assert.equal(ok.body.data.requests[0].title, 'SMS reminders');
+    assert.equal(ok.body.data.requests[0].summary, 'Send a second reminder two hours before the appointment.');
     assert.equal(ok.body.data.requests[0].priority, 'high');
 
     const otherList = response();
@@ -283,7 +328,7 @@ test('admin asks for more information and the client revises; locked items canno
     assert.equal(project.clientMessage, 'Which dentists and how many rooms?');
 
     const badEdit = response();
-    await clientProjects.updateMine({ ...owner.req, params: { id: String(ids.project) }, body: { ...validProject, summary: gibberish } }, badEdit, assert.ifError);
+    await clientProjects.updateMine({ ...owner.req, params: { id: String(ids.project) }, body: { ...validProject, notes: gibberish } }, badEdit, assert.ifError);
     assert.equal(badEdit.statusCode, 400);
 
     const revised = response();
@@ -305,11 +350,11 @@ test('admin asks for more information and the client revises; locked items canno
     assert.equal(project.requests[0].status, 'needs_info');
 
     const requestRevised = response();
-    await clientProjects.updateMyRequest({ ...owner.req, params: { id: String(ids.project), requestId: String(ids.request) }, body: { ...validRequest, details: `${validRequest.details} Use the number on the patient profile.` } }, requestRevised, assert.ifError);
+    await clientProjects.updateMyRequest({ ...owner.req, params: { id: String(ids.project), requestId: String(ids.request) }, body: { ...validRequest, example: 'Use the number on the patient profile.' } }, requestRevised, assert.ifError);
     assert.equal(requestRevised.statusCode, 200);
     assert.equal(project.requests[0].status, 'requested');
     assert.equal(project.requests[0].clientMessage, '');
-    assert.match(project.requests[0].details, /patient profile/);
+    assert.match(project.requests[0].example, /patient profile/);
     calls.adminUpdates.length = 0;
     calls.requestUpdates.length = 0;
 });
@@ -391,7 +436,7 @@ test('admin converts a legacy public brief into a project profile owned by the m
     assert.equal(project.targetDate.toISOString(), '2026-09-01T00:00:00.000Z');
     assert.match(project.otherDetails, /Phone: 555-0100/);
     assert.equal(project.status, 'needs_info');
-    assert.match(project.clientMessage, /complete the structured project form/);
+    assert.match(project.clientMessage, /complete the guided project form/);
     assert.equal(converted.body.data.brief.status, 'converted');
     assert.equal(String(converted.body.data.brief.projectId), String(project._id));
 });

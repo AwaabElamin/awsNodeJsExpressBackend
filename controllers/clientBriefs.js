@@ -5,7 +5,7 @@ const usersModel = require('../models/users');
 const { validateLegacyProjectInput } = require('../lib/clientProjectInput');
 const { INTEGRATIONS } = require('../lib/clientProjectOptions');
 
-const CONVERTED_BRIEF_MESSAGE = 'Thank you for your project brief. We have moved it into your workspace. Please open it and complete the structured project form (user types, must-have features, devices, languages, content readiness) so our developers have everything they need to plan the work.';
+const CONVERTED_BRIEF_MESSAGE = 'Thank you for your project brief. We have moved it into your workspace. Please open it and complete the guided project form (goal, users, features, design, systems, testing, launch and support) so our developers have everything they need to plan the work.';
 
 // Legacy public briefs stored answers under their on-screen labels; map them onto project profile fields.
 const LABEL_TO_FIELD = {
