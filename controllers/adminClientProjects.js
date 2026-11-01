@@ -17,7 +17,15 @@ function statusAndNotes(body, statuses) {
         if (notes.error) return { error: notes.error };
         fields.adminNotes = notes.value;
     }
-    if (!Object.keys(fields).length) return { error: 'Provide a status or admin notes to update.' };
+    if (source.clientMessage !== undefined) {
+        const message = cleanText(source.clientMessage, LIMITS.clientMessage, 'Message to the client');
+        if (message.error) return { error: message.error };
+        fields.clientMessage = message.value;
+    }
+    if (fields.status === 'needs_info' && !fields.clientMessage) {
+        return { error: 'Tell the client what information is missing when asking for more details.' };
+    }
+    if (!Object.keys(fields).length) return { error: 'Provide a status, admin notes, or a message to the client.' };
     return { fields };
 }
 

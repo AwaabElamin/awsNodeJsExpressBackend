@@ -4,24 +4,47 @@ const {
     BUDGET_RANGES,
     TIMELINE_FLEXIBILITY,
     INTEGRATIONS,
+    DEVICES,
+    LANGUAGES,
+    CONTENT_READINESS,
+    CONTACT_METHODS,
     PROJECT_STATUSES,
     REQUEST_STATUSES,
+    CLIENT_EDITABLE_STATUSES,
     REQUEST_PRIORITIES,
+    FEATURE_PRIORITIES,
     PROJECT_TEXT_FIELDS,
     LIMITS
 } = require('../lib/clientProjectOptions');
 
 const optionalEnum = (values) => ({ type: String, enum: [...values, ''], default: '' });
 const longText = (maxlength) => ({ type: String, trim: true, maxlength, default: '' });
+const enumList = (values) => ({ type: [{ type: String, enum: values }], default: [] });
+
+const userRoleSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true, maxlength: LIMITS.roleName },
+    goals: { type: String, required: true, trim: true, maxlength: LIMITS.roleGoals }
+}, { _id: false });
+
+const featureSchema = new mongoose.Schema({
+    title: { type: String, required: true, trim: true, maxlength: LIMITS.featureTitle },
+    description: { type: String, required: true, trim: true, maxlength: LIMITS.featureDescription },
+    priority: { type: String, enum: FEATURE_PRIORITIES, default: 'must' }
+}, { _id: false });
 
 const featureRequestSchema = new mongoose.Schema({
     title: { type: String, required: true, trim: true, maxlength: LIMITS.requestTitle },
+    userRole: longText(LIMITS.roleName),
     details: { type: String, required: true, trim: true, maxlength: LIMITS.requestDetails },
     reason: longText(LIMITS.requestReason),
+    acceptance: longText(LIMITS.requestAcceptance),
+    area: longText(LIMITS.requestArea),
     priority: { type: String, enum: REQUEST_PRIORITIES, default: 'normal' },
     targetDate: { type: Date, default: null },
     budgetRange: optionalEnum(BUDGET_RANGES),
     status: { type: String, enum: REQUEST_STATUSES, default: 'requested' },
+    // Admin → client questions (visible to the client); adminNotes stay internal.
+    clientMessage: longText(LIMITS.clientMessage),
     adminNotes: longText(LIMITS.adminNotes)
 }, { timestamps: true });
 
@@ -31,12 +54,30 @@ const projectFields = {
     briefId: { type: mongoose.Schema.Types.ObjectId, ref: 'clientBriefs', default: null },
     name: { type: String, required: true, trim: true, maxlength: LIMITS.name },
     type: optionalEnum(PROJECT_TYPES),
+    businessDescription: longText(LIMITS.text),
+    goal: longText(LIMITS.goal),
     summary: { type: String, required: true, trim: true, maxlength: LIMITS.summary },
-    integrations: { type: [{ type: String, enum: INTEGRATIONS }], default: [] },
+    problem: longText(LIMITS.text),
+    outcome: longText(LIMITS.text),
+    userRoles: { type: [userRoleSchema], default: [] },
+    features: { type: [featureSchema], default: [] },
+    devices: enumList(DEVICES),
+    languages: enumList(LANGUAGES),
+    contentReadiness: optionalEnum(CONTENT_READINESS),
+    integrations: enumList(INTEGRATIONS),
     targetDate: { type: Date, default: null },
     timelineFlexibility: optionalEnum(TIMELINE_FLEXIBILITY),
     budgetRange: optionalEnum(BUDGET_RANGES),
+    decisionMaker: longText(LIMITS.name),
+    contactMethod: optionalEnum(CONTACT_METHODS),
+    contactPhone: longText(LIMITS.phone),
+    // Legacy free-text fields kept so projects created before the structured form still display.
+    audience: longText(LIMITS.text),
+    userTasks: longText(LIMITS.text),
+    mustHaves: longText(LIMITS.text),
+    reviewers: longText(LIMITS.name),
     status: { type: String, enum: PROJECT_STATUSES, default: 'requested', index: true },
+    clientMessage: longText(LIMITS.clientMessage),
     adminNotes: longText(LIMITS.adminNotes),
     requests: { type: [featureRequestSchema], default: [] }
 };
@@ -62,6 +103,7 @@ function summarize(project) {
         budgetRange: project.budgetRange,
         requestCount: requests.length,
         openRequestCount: requests.filter((request) => !['completed', 'declined'].includes(request.status)).length,
+        needsInfoCount: requests.filter((request) => request.status === 'needs_info').length,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt
     };
@@ -86,10 +128,32 @@ class ClientProjectCollection {
         return clientProjectModel.findOne({ _id: id, ownerId }, CLIENT_PROJECTION).lean();
     }
 
+    // Owners may revise a project only while it is still being clarified. Re-submitting clears the
+    // admin's question and puts the project back in the review queue.
+    static async updateForOwner(id, ownerId, fields) {
+        return clientProjectModel.findOneAndUpdate(
+            { _id: id, ownerId, status: { $in: CLIENT_EDITABLE_STATUSES } },
+            { $set: { ...fields, status: 'requested', clientMessage: '' } },
+            { new: true, runValidators: true, projection: CLIENT_PROJECTION }
+        ).lean();
+    }
+
     static async addRequestForOwner(id, ownerId, request) {
         return clientProjectModel.findOneAndUpdate(
             { _id: id, ownerId },
             { $push: { requests: request } },
+            { new: true, runValidators: true, projection: CLIENT_PROJECTION }
+        ).lean();
+    }
+
+    static async updateRequestForOwner(id, ownerId, requestId, fields) {
+        const set = { 'requests.$.status': 'requested', 'requests.$.clientMessage': '' };
+        for (const [key, value] of Object.entries(fields)) {
+            set[`requests.$.${key}`] = value;
+        }
+        return clientProjectModel.findOneAndUpdate(
+            { _id: id, ownerId, requests: { $elemMatch: { _id: requestId, status: { $in: CLIENT_EDITABLE_STATUSES } } } },
+            { $set: set },
             { new: true, runValidators: true, projection: CLIENT_PROJECTION }
         ).lean();
     }

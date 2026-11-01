@@ -42,6 +42,19 @@ mockModule('../models/clientProject', {
     },
     listForOwner: async (ownerId) => store.projects.filter((project) => String(project.ownerId) === String(ownerId)).map((project) => ({ _id: project._id, name: project.name, status: project.status })),
     getForOwner: async (id, ownerId) => ownedProject(id, ownerId),
+    updateForOwner: async (id, ownerId, fields) => {
+        const project = ownedProject(id, ownerId);
+        if (!project || !['requested', 'needs_info'].includes(project.status)) return null;
+        Object.assign(project, fields, { status: 'requested', clientMessage: '' });
+        return project;
+    },
+    updateRequestForOwner: async (id, ownerId, requestId, fields) => {
+        const project = ownedProject(id, ownerId);
+        const request = project && project.requests.find((item) => String(item._id) === String(requestId));
+        if (!request || !['requested', 'needs_info'].includes(request.status)) return null;
+        Object.assign(request, fields, { status: 'requested', clientMessage: '' });
+        return project;
+    },
     addRequestForOwner: async (id, ownerId, request) => {
         const project = ownedProject(id, ownerId);
         if (!project) return null;
@@ -89,7 +102,7 @@ const requireClient = require('../middleware/requireClient');
 const clientProjects = require('../controllers/clientProjects');
 const adminClientProjects = require('../controllers/adminClientProjects');
 const clientBriefs = require('../controllers/clientBriefs');
-const { validateProjectInput, validateRequestInput } = require('../lib/clientProjectInput');
+const { validateProjectInput, validateRequestInput, isReadableText } = require('../lib/clientProjectInput');
 
 function response() {
     return {
@@ -114,29 +127,77 @@ async function asClient(email) {
 const validProject = {
     name: '  Booking portal  ',
     type: 'Web application',
-    summary: 'Let customers book appointments online.',
+    businessDescription: 'We run a dental clinic with three dentists and a front desk in Khartoum.',
+    goal: 'Let patients book and manage appointments online without calling.',
+    summary: 'Patients should be able to see available times, book an appointment, receive a confirmation, and reschedule if needed. The front desk sees the daily schedule.',
+    problem: 'Today the front desk takes all bookings by phone, which causes double bookings and missed calls.',
+    outcome: 'Fewer phone calls, no double bookings, and patients confirm their own appointments.',
+    userRoles: [
+        { name: 'Patient', goals: 'Find a free slot, book it, and get a reminder before the visit.' },
+        { name: 'Front desk', goals: 'See the daily schedule and move or cancel appointments.' }
+    ],
+    features: [
+        { title: 'Online booking', description: 'Patient picks a dentist, sees free slots for the next two weeks, and books one.', priority: 'must' },
+        { title: 'SMS reminder', description: 'The system sends a reminder one day before the appointment with a cancel link.' }
+    ],
+    devices: ['Mobile web', 'Desktop web', 'Mobile web'],
+    languages: ['Arabic', 'English'],
+    contentReadiness: 'Some content is ready; the rest needs work',
     integrations: ['Email or messaging', 'Payments or billing', 'Email or messaging'],
     targetDate: '2026-12-15',
     timelineFlexibility: 'Some flexibility',
     budgetRange: '$5,000–$10,000',
-    mustHaves: 'Calendar, reminders'
+    decisionMaker: 'Dr. Amal, clinic owner',
+    contactMethod: 'WhatsApp',
+    contactPhone: '+249 900 000 000'
+};
+const gibberish = 'dskljfgdl lkdfkfvmc lkjdirjf llkjdfd lkmnvnnfiu lls;so0juf kkkd j ;ljfkjfdiin l;s;djj knvvv llkdhy kdkdhg llskdhg assdf kkfhht kkjhf kkdjhg';
+
+const validRequest = {
+    title: 'SMS reminders',
+    userRole: 'Patient',
+    details: 'One day before the appointment, text the patient the time, the dentist name, and a link to cancel.',
+    reason: 'Patients forget appointments and we lose the slot.',
+    acceptance: 'A test patient receives the SMS 24 hours before and the cancel link works.',
+    priority: 'high',
+    targetDate: '2027-01-10'
 };
 
-test('project input validation trims, dedupes, and rejects unknown options', () => {
+test('readable-text check rejects keyboard mashing but accepts real English and Arabic', () => {
+    assert.equal(isReadableText(gibberish), false);
+    assert.equal(isReadableText('Patients should be able to see available times and book an appointment.'), true);
+    assert.equal(isReadableText('نظام حجز مواعيد للعيادة مع تذكير عبر الرسائل'), true);
+    assert.equal(isReadableText('ok'), true);
+});
+
+test('project input validation trims, dedupes, enforces structure and rejects unknown options', () => {
     const ok = validateProjectInput(validProject);
     assert.equal(ok.error, undefined);
     assert.equal(ok.fields.name, 'Booking portal');
     assert.deepEqual(ok.fields.integrations, ['Email or messaging', 'Payments or billing']);
+    assert.deepEqual(ok.fields.devices, ['Mobile web', 'Desktop web']);
     assert.equal(ok.fields.targetDate.toISOString(), '2026-12-15T00:00:00.000Z');
-    assert.equal(ok.fields.problem, '');
+    assert.equal(ok.fields.userRoles.length, 2);
+    assert.equal(ok.fields.features[1].priority, 'must');
+    assert.equal(ok.fields.successMetrics, '');
 
-    assert.match(validateProjectInput({ name: 'x' }).error, /summary is required/i);
+    assert.match(validateProjectInput({ name: 'x' }).error, /Project type is required/);
+    assert.match(validateProjectInput({ ...validProject, summary: gibberish }).error, /does not look like readable text/);
+    assert.match(validateProjectInput({ ...validProject, summary: 'Too short.' }).error, /at least 15 words/);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [] }).error, /at least one type of user/);
+    assert.match(validateProjectInput({ ...validProject, features: [{ title: 'Booking', description: 'short' }] }).error, /at least 8 words/);
+    assert.match(validateProjectInput({ ...validProject, devices: [] }).error, /devices/);
+    assert.match(validateProjectInput({ ...validProject, contentReadiness: '' }).error, /Content readiness is required/);
     assert.match(validateProjectInput({ ...validProject, type: 'Spaceship' }).error, /Project type/);
-    assert.match(validateProjectInput({ ...validProject, integrations: ['Blockchain'] }).error, /Integrations/);
+    assert.match(validateProjectInput({ ...validProject, integrations: ['Blockchain'] }).error, /integrations/i);
     assert.match(validateProjectInput({ ...validProject, targetDate: '15/12/2026' }).error, /Target date/);
-    assert.match(validateRequestInput({ title: 'Dark mode' }).error, /details is required/i);
-    assert.equal(validateRequestInput({ title: 'Dark mode', details: 'Please' }).fields.priority, 'normal');
-    assert.match(validateRequestInput({ title: 'Dark mode', details: 'Please', priority: 'urgent' }).error, /Priority/);
+
+    assert.equal(validateRequestInput(validRequest).error, undefined);
+    assert.equal(validateRequestInput({ ...validRequest, priority: undefined }).fields.priority, 'normal');
+    assert.match(validateRequestInput({ title: 'Dark mode' }).error, /Who uses this feature is required/);
+    assert.match(validateRequestInput({ ...validRequest, acceptance: '' }).error, /How we know it is done is required/);
+    assert.match(validateRequestInput({ ...validRequest, details: gibberish }).error, /readable text/);
+    assert.match(validateRequestInput({ ...validRequest, priority: 'urgent' }).error, /Priority/);
 });
 
 test('visitors are refused with CLIENT_ROLE_REQUIRED and anonymous callers get 401', async () => {
@@ -184,7 +245,7 @@ test('a client can create a project, list it, and read it back without admin not
 test('a client can add a feature request only to their own project', async () => {
     const owner = await asClient(accounts.client.email);
     const other = await asClient(accounts.otherClient.email);
-    const request = { title: 'SMS reminders', details: 'Text customers 24h before.', priority: 'high', targetDate: '2027-01-10' };
+    const request = validRequest;
 
     const foreign = response();
     await clientProjects.addRequest({ ...other.req, params: { id: String(ids.project) }, body: request }, foreign, assert.ifError);
@@ -204,6 +265,53 @@ test('a client can add a feature request only to their own project', async () =>
     const otherList = response();
     await clientProjects.listMine(other.req, otherList, assert.ifError);
     assert.equal(otherList.body.data.length, 0);
+});
+
+test('admin asks for more information and the client revises; locked items cannot be edited', async () => {
+    const owner = await asClient(accounts.client.email);
+    const project = store.projects.find((item) => String(item._id) === String(ids.project));
+
+    const missingMessage = response();
+    await adminClientProjects.update({ params: { id: String(ids.project) }, body: { status: 'needs_info' } }, missingMessage, assert.ifError);
+    assert.equal(missingMessage.statusCode, 400);
+    assert.match(missingMessage.body.message, /what information is missing/);
+
+    const asked = response();
+    await adminClientProjects.update({ params: { id: String(ids.project) }, body: { status: 'needs_info', clientMessage: 'Which dentists and how many rooms?' } }, asked, assert.ifError);
+    assert.equal(asked.statusCode, 200);
+    assert.equal(project.status, 'needs_info');
+    assert.equal(project.clientMessage, 'Which dentists and how many rooms?');
+
+    const badEdit = response();
+    await clientProjects.updateMine({ ...owner.req, params: { id: String(ids.project) }, body: { ...validProject, summary: gibberish } }, badEdit, assert.ifError);
+    assert.equal(badEdit.statusCode, 400);
+
+    const revised = response();
+    await clientProjects.updateMine({ ...owner.req, params: { id: String(ids.project) }, body: { ...validProject, name: 'Booking portal v2' } }, revised, assert.ifError);
+    assert.equal(revised.statusCode, 200);
+    assert.equal(revised.body.data.name, 'Booking portal v2');
+    assert.equal(revised.body.data.status, 'requested');
+    assert.equal(revised.body.data.clientMessage, '');
+
+    project.status = 'active';
+    const locked = response();
+    await clientProjects.updateMine({ ...owner.req, params: { id: String(ids.project) }, body: validProject }, locked, assert.ifError);
+    assert.equal(locked.statusCode, 409);
+    assert.equal(locked.body.code, 'PROJECT_LOCKED');
+
+    const requestAsked = response();
+    await adminClientProjects.updateRequest({ params: { id: String(ids.project), requestId: String(ids.request) }, body: { status: 'needs_info', clientMessage: 'Which phone number should we text?' } }, requestAsked, assert.ifError);
+    assert.equal(requestAsked.statusCode, 200);
+    assert.equal(project.requests[0].status, 'needs_info');
+
+    const requestRevised = response();
+    await clientProjects.updateMyRequest({ ...owner.req, params: { id: String(ids.project), requestId: String(ids.request) }, body: { ...validRequest, details: `${validRequest.details} Use the number on the patient profile.` } }, requestRevised, assert.ifError);
+    assert.equal(requestRevised.statusCode, 200);
+    assert.equal(project.requests[0].status, 'requested');
+    assert.equal(project.requests[0].clientMessage, '');
+    assert.match(project.requests[0].details, /patient profile/);
+    calls.adminUpdates.length = 0;
+    calls.requestUpdates.length = 0;
 });
 
 test('admin can review projects, change statuses, and update feature requests', async () => {
@@ -282,6 +390,8 @@ test('admin converts a legacy public brief into a project profile owned by the m
     assert.equal(project.budgetRange, '$2,500–$5,000');
     assert.equal(project.targetDate.toISOString(), '2026-09-01T00:00:00.000Z');
     assert.match(project.otherDetails, /Phone: 555-0100/);
+    assert.equal(project.status, 'needs_info');
+    assert.match(project.clientMessage, /complete the structured project form/);
     assert.equal(converted.body.data.brief.status, 'converted');
     assert.equal(String(converted.body.data.brief.projectId), String(project._id));
 });

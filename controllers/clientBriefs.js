@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 const ClientBrief = require('../models/clientBrief');
 const clientProjects = require('../models/clientProject');
 const usersModel = require('../models/users');
-const { validateProjectInput } = require('../lib/clientProjectInput');
+const { validateLegacyProjectInput } = require('../lib/clientProjectInput');
 const { INTEGRATIONS } = require('../lib/clientProjectOptions');
+
+const CONVERTED_BRIEF_MESSAGE = 'Thank you for your project brief. We have moved it into your workspace. Please open it and complete the structured project form (user types, must-have features, devices, languages, content readiness) so our developers have everything they need to plan the work.';
 
 // Legacy public briefs stored answers under their on-screen labels; map them onto project profile fields.
 const LABEL_TO_FIELD = {
@@ -87,10 +89,14 @@ exports.convert = async (req, res, next) => {
             });
         }
 
-        const { fields, error } = validateProjectInput(briefToProjectInput(brief));
+        const { fields, error } = validateLegacyProjectInput(briefToProjectInput(brief));
         if (error) return res.status(422).json({ status: 'fail', message: `The brief could not be converted: ${error}` });
 
-        const project = await clientProjects.createFromBriefForAdmin(owner, brief._id, fields);
+        const project = await clientProjects.createFromBriefForAdmin(owner, brief._id, {
+            ...fields,
+            status: 'needs_info',
+            clientMessage: CONVERTED_BRIEF_MESSAGE
+        });
         const updatedBrief = await ClientBrief.markConverted(brief._id, project._id);
         return res.status(201).json({ status: 'success', message: 'Project profile created from brief', data: { project, brief: updatedBrief } });
     } catch (error) {

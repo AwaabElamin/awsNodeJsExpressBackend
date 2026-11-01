@@ -9,6 +9,8 @@ router.use(authorizationController.authorize, requireClient);
 router.get('/', clientProjectsController.listMine);
 router.post('/', clientProjectsController.create);
 router.get('/:id', clientProjectsController.getMine);
+router.patch('/:id', clientProjectsController.updateMine);
 router.post('/:id/requests', clientProjectsController.addRequest);
+router.patch('/:id/requests/:requestId', clientProjectsController.updateMyRequest);
 
 module.exports = router;
