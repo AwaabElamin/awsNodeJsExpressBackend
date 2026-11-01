@@ -9,6 +9,9 @@ Auto-update policy:
 - If no files are changed in a request, keep this file updated anyway.
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
+Local note (2026-11-01, relationship rules):
+- **COMPLETED:** `lib/clientProjectOptions.js`: `inventory` available for all types with a detail question; `maxDetails` on 10 catalogue questions; `EXCLUSIVE_DETAILS`, `GOAL_REQUIRES_FEATURE`, `CUSTOMER_ROLES`/`STAFF_ROLES`, `CUSTOMER_FACING_FEATURES`/`BACK_OFFICE_FEATURES`, `FEATURE_WEIGHTS`, `BUDGET_SCOPE_LIMITS`. `lib/clientProjectInput.js`: "Other" names matching a catalogue label map to that feature; detail caps and exclusive answers; ≥4 features cannot all be "must"; `checkGoalFeature`, `checkFeatureRoles`, `checkScopeAgainstBudget` (`scopePoints` exported); data migration must be "No existing data to move" when there are no systems and no website. `/options` exposes the maps. Tests: 43 total, 42 pass, 1 pre-existing skip. Backend restarted on 3001 (Atlas). Internal developer-reading note added to project `6ae7aa1a881d7e72e569ffa8`.
+
 Local note (2026-11-01, cross-field rules):
 - **COMPLETED:** `lib/clientProjectOptions.js`: `CAPABILITY_REQUIRES_FEATURE`, `INTEGRATION_REQUIRES_FEATURE`, `MIN_LEAD_DAYS = 14`. `lib/clientProjectInput.js`: `checkCapabilityFeatureDependencies` and `checkIntegrationFeatureDependencies` run as non-persisted `_` steps (no "other" escape hatch); testers — "Awaaab LLC only" exclusive, "My staff" rejected for "Just me"; `cleanDate` accepts `{ minLeadDays, now }` and the target date must be ≥ 14 days out; `isReadableText` requires a vowel in a single 4+ letter word (rejects "shhhshhh"); `validateProjectInput(body, client, { now })`. `/options` exposes the maps and `minLeadDays`. Tests: 43 total, 42 pass, 1 pre-existing skip. Backend restarted on 3001 (Atlas). Internal developer-reading note added to project `6ae7a166a496444aab0c63c1`.
 

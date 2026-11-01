@@ -102,7 +102,7 @@ const requireClient = require('../middleware/requireClient');
 const clientProjects = require('../controllers/clientProjects');
 const adminClientProjects = require('../controllers/adminClientProjects');
 const clientBriefs = require('../controllers/clientBriefs');
-const { validateProjectInput, validateRequestInput, isReadableText } = require('../lib/clientProjectInput');
+const { validateProjectInput, validateRequestInput, isReadableText, scopePoints } = require('../lib/clientProjectInput');
 
 function response() {
     return {
@@ -270,6 +270,21 @@ test('closed-form validation accepts a complete SDLC payload and rejects missing
     assert.match(validateProjectInput({ ...validProject, name: 'shhhshhh' }).error, /Project name does not look like readable text/);
     assert.equal(isReadableText('Hashim'), true);
     assert.equal(isReadableText('بسم الله الرحمن الرحيم'), true);
+
+    // Relationship rules learned from the fourth real submission.
+    assert.match(validateProjectInput({ ...validProject, primaryGoal: 'Sell products online' }).error, /main goal is "Sell products online", but no feature delivers it. Add "Online ordering or shopping cart" or "Product or service catalogue"/);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [validProject.userRoles[1]] }).error, /used by customers, but no customer user type is listed/);
+    assert.match(validateProjectInput({ ...validProject, userRoles: [validProject.userRoles[0]], features: validProject.features.filter((f) => f.key !== 'orders_admin' && f.key !== 'reports').concat([{ key: 'inventory', details: ['Low-stock alerts for staff'] }]) }).error, /used by your team, but no staff/);
+    assert.match(validateProjectInput({ ...validProject, features: validProject.features.map((f) => ({ ...f, priority: 'must' })) }).error, /Every feature is marked "Must have"/);
+    assert.match(validateProjectInput({ ...validProject, features: validProject.features.map((f) => (f.key === 'accounts' ? { ...f, details: ['Email and password', 'Not sure'] } : f)) }).error, /"Not sure" cannot be combined/);
+    assert.match(validateProjectInput({ ...validProject, features: validProject.features.map((f) => (f.key === 'booking' ? { ...f, details: ['Appointments with staff', 'Tables or seats', 'Rooms or venues'] } : f)) }).error, /at most 2 options/);
+    assert.match(validateProjectInput({ ...validProject, budgetRange: 'Under $2,500' }).error, /more than "Under \$2,500" usually covers. This scope usually fits "\$5,000–\$10,000"/);
+    assert.equal(validateProjectInput({ ...validProject, budgetRange: 'Need guidance' }).error, undefined);
+    assert.match(validateProjectInput({ ...validProject, existingWebsite: 'No website yet', existingWebsiteUrl: '', existingSystems: ['None'], dataMigration: 'Not sure' }).error, /no data to move/);
+    const mappedOther = validateProjectInput({ ...validProject, type: 'Website', devices: ['Desktop web'], features: validProject.features.map((f) => (f.key === 'other' ? { key: 'other', customTitle: 'Stock or inventory tracking', priority: 'could', details: ['Low-stock alerts for staff'] } : f)) });
+    assert.equal(mappedOther.error, undefined, mappedOther.error);
+    assert.equal(mappedOther.fields.features.find((f) => f.key === 'inventory').customTitle, '');
+    assert.equal(scopePoints(validateProjectInput(validProject).fields.features), 18);
 
     assert.equal(validateRequestInput(validRequest, savedProjectShape).error, undefined);
     assert.equal(validateRequestInput({ ...validRequest, priority: undefined }, savedProjectShape).fields.priority, 'normal');
