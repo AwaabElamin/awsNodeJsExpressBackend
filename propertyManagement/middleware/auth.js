@@ -30,11 +30,30 @@ module.exports = async (req, res, next) => {
     }
 
     if (identity.email) {
-      const user = await awaabUsers.findByEmail(identity.email);
+      const email = String(identity.email).trim().toLowerCase();
+      const user = await awaabUsers.findByEmail(email);
       if (user && String(user.role || "").trim().toLowerCase() === "admin") {
         req.userData = { userId: String(user._id), role: "admin" };
         req.companyAdmin = true;
         return next();
+      }
+
+      if (
+        user &&
+        user.role === "Client" &&
+        user.isActive !== false &&
+        user.emailVerified !== false
+      ) {
+        const propertyUser = await PropertyUser.findOne({ email, status: "active" });
+        if (propertyUser) {
+          req.userData = {
+            userId: String(propertyUser._id),
+            role: propertyUser.role,
+          };
+          req.propertyUser = propertyUser;
+          req.companyClient = true;
+          return next();
+        }
       }
     }
 

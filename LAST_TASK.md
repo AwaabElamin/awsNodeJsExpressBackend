@@ -2,12 +2,25 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-11-01
+Updated: 2026-11-06
 
 Auto-update policy:
 - Update this file at the end of every completed request.
 - If no files are changed in a request, keep this file updated anyway.
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
+
+Last task:
+- **COMPLETED LOCALLY:** Reviewed and finalized the task-related Property Management SSO changes on `dev`. Verified active central Client accounts resolve to an active same-email property profile while preserving property roles and existing property-token/admin behavior; the profile endpoint and frontend contract match. No unrelated pending work was found; no new source edits were needed.
+- **Files:** `propertyManagement/middleware/auth.js`, `propertyManagement/routes/auth.js`, `tests/propertyManagementAuth.test.js`, `README.md`, and this snapshot. Frontend counterpart: Property Management SSO and session separation in `ReactFrontAwaaabLLC`; its navigation/homepage/public marketplace changes need no backend source counterpart.
+- **Validation:** Node 22 does not resolve the directory argument in `node --test tests/`; reran all 10 test files explicitly with `node --test` and passed (54 tests: 53 passed, 1 existing skip, 0 failures). The editor test tool did not discover Node tests. `git diff --check` passed. Frontend fresh build/lint passed with the existing large-chunk warning. No fresh browser or live database/API validation.
+- **Shutdown/publication:** Stopped backend PID 2172 (`scripts/startLocal.js`) and npm wrapper PID 9228, plus frontend PIDs 14420/15808. Stopped only `awaab-profile-local-mongo`; container is exited and data/container were preserved. Ports 3000/3001/27018 have no listeners; Docker services were not stopped. This snapshot is included in the requested `dev` commit; final commit hashes, push outcomes, and remote/worktree verification are recorded in root `Apps/LAST_TASK.md` after publication. No deployment; `main` was not changed.
+
+Previous task:
+Local note (2026-11-06, frontend navigation and marketplaces):
+- **COMPLETED LOCALLY:** The Awaaab public-site navigation, homepage, public marketplace links, and owner-summary update were implemented in `ReactFrontAwaaabLLC`; there was no backend counterpart or backend source change for this task. Frontend build/lint and desktop/mobile route checks passed. Backend and isolated local MongoDB remain running on ports 3001 and 27018 respectively; backend tests were not rerun because backend code was unchanged. No deployment.
+
+Local note (2026-11-06, backend startup):
+- **COMPLETED:** Started the isolated local MongoDB container `awaab-profile-local-mongo` and backend via `npm run start:local`. Backend connected to the dedicated local databases and is listening on port 3001; `GET http://127.0.0.1:3001/health` returned HTTP 200. No source changes in this startup step; previously uncommitted SSO work on `dev` remains untouched. Backend process and MongoDB container were left running for local development. No deployment.
 
 Local note (2026-11-01, shutdown):
 - **COMPLETED:** Stopped the local backend `node app.js` on 3001 (PID 8352); port 3001 free. All source changes already committed and pushed on `dev` (latest `ec015f0`); this commit only updates `LAST_TASK.md`. Live Atlas data state: `lkjui` proposal_sent with analysis v1; `look`/`shhhshhh` requested with plans; `alfdkfgkg` needs_info. Next: tune planner constants to real pricing.
@@ -52,6 +65,11 @@ Local notes (2026-10-22):
 - Added `scripts/startLocalAutoSellerInfo.js` and `start:local-autohub-sellers` for a loopback-only, read-only local seller profile lookup. It maps listing owner IDs/emails to the shared users database and never writes to MongoDB.
 
 Last completed task:
+- **COMPLETED LOCALLY:** Added single sign-on from verified, active Awaaab Client accounts into Property Management. `propertyManagement/middleware/auth.js` matches the central account's normalized email to an active Property Management user and retains that user's existing role for authorization; Visitors, inactive/unverified Clients, and Clients without an active linked Property Management profile are denied. Added `GET /property-management/api/auth/me` to return the linked property profile without password data. Existing Awaaab Admin and property-user token access remain supported. README documents the same-email provisioning requirement.
+- **Files:** `propertyManagement/middleware/auth.js`, `propertyManagement/routes/auth.js`, `tests/propertyManagementAuth.test.js`, `README.md`, and this snapshot. Frontend counterpart is in `ReactFrontAwaaabLLC`. Work is on `dev`; changes are uncommitted and unpushed.
+- **Validation:** Full backend test suite: 54 tests, 53 passed, 1 skipped, 0 failed. Frontend build and lint passed; browser smoke test used mocked API responses (no live backend/database). No deployment.
+
+Previous completed task:
 - **COMPLETED:** Committed the previously untracked `scripts/seedSampleProperties.js` (env-driven, dry-run-by-default sample property seeder; no secrets) on `dev`, pushed, then fast-forward merged `dev` into `main` and pushed `origin/main` at the user's explicit request. Main-branch push may trigger configured deployments; deployment status was not checked.
 
 Previous completed task:
