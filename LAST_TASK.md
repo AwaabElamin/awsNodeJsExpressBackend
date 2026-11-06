@@ -10,6 +10,49 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last task:
+- **COMPLETED LOCALLY:** End-of-day shutdown/publication for paired Awaaab LLC repositories. Today's backend changes are task-history only; API/source/data unchanged. Frontend preview stopped, backend/Mongo already stopped; ports 3000/3001/27018 free, isolated MongoDB exited.
+- **Validation/publication:** Fresh frontend build/lint and whitespace checks passed. Backend tests not rerun because backend application code is unchanged. This history accompanies the requested dev commit/push and main merge/push; final hashes/results are recorded in root Apps/LAST_TASK.md. No deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend office button text locked to white across link states; backend source/API unchanged. Only this task snapshot changed. Browser interaction color checks passed; no backend tests. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend client-office CTA contrast improved with navy/white styling. No backend source/API counterpart; only this task snapshot changed. Browser color/destination check performed; backend tests not run. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend header logo widened and portrait-video empty space center-cropped for readability. No backend source/API changes; only this snapshot updated. Browser visual/responsive checks passed; backend tests not run. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend main logo video moved to the compact shared-header home link, removing its fullscreen About/services section. No backend source/API counterpart; only this snapshot changed. Frontend build/lint and browser playback/responsive/reduced-motion checks passed; no backend tests. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend About & services company introduction moved above logo animations. No backend source/API counterpart; only this task snapshot changed. Frontend build/lint and responsive first-viewport checks passed. Live data checks omitted per user; backend tests not rerun. Frontend running on 3000, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend footer heading changed to "Ready to build your business?" No backend source/API counterpart; only this snapshot updated. Copy-only edit, no backend tests. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend visitor footer CTA now introduces Awaaab LLC through About & services instead of directing immediately to signup. No backend source/API counterpart; only this snapshot updated. Frontend lint and browser navigation checks passed; backend tests not rerun. Frontend running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend owner summary and About & services now state Awaaab LLC was founded in 2019 by Awaab Elamin. No backend source/API counterpart; this task snapshot is the only backend edit. No backend tests for copy-only work. Frontend remains running, backend/Mongo stopped; uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend owner professional summary changed to third-person He/His. No backend source/API counterpart; only this task snapshot updated. Copy-only text reviewed; backend tests not run. Uncommitted on `dev`; no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend public marketplace branding renamed to Awaaab Sooq. No backend source/API changes or backend tests; this snapshot is the only backend edit. Changes uncommitted on `dev`; local services stopped, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend-only change combines public vehicle, grocery, and property cards into one mixed homepage grid. Backend source/API contracts unchanged; this snapshot is the only backend edit. Frontend build/lint and mocked responsive/mixed-grid/empty-state checks passed; no backend tests or live data checks. Local services stopped; changes uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend homepage now displays public cars, groceries, and available properties using existing API contracts, and removes the redundant marketplace category section and promotional hero. Backend source/routes/data unchanged; only this task snapshot updated. Final frontend build/lint passed; mocked browser checks covered populated/empty/error states, navigation, section removal, and responsive layouts. No backend tests or live data checks for this frontend-only task. Backend/Mongo and temporary frontend are stopped; changes remain uncommitted on `dev`, no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend-only marketplace homepage/About & services consolidation and matching login/signup design in `ReactFrontAwaaabLLC`. Backend routes, authentication contracts, and source are unchanged; this note is the only backend modification. Frontend build/lint and responsive browser checks passed; auth error/signup success used mocked responses, not live API/database/email. Backend tests were not rerun. Backend/Mongo remain stopped; temporary frontend verification server stopped. Current work is uncommitted on `dev`; no deployment or main changes.
+
+Previous task:
 - **COMPLETED LOCALLY:** Reviewed and finalized the task-related Property Management SSO changes on `dev`. Verified active central Client accounts resolve to an active same-email property profile while preserving property roles and existing property-token/admin behavior; the profile endpoint and frontend contract match. No unrelated pending work was found; no new source edits were needed.
 - **Files:** `propertyManagement/middleware/auth.js`, `propertyManagement/routes/auth.js`, `tests/propertyManagementAuth.test.js`, `README.md`, and this snapshot. Frontend counterpart: Property Management SSO and session separation in `ReactFrontAwaaabLLC`; its navigation/homepage/public marketplace changes need no backend source counterpart.
 - **Validation:** Node 22 does not resolve the directory argument in `node --test tests/`; reran all 10 test files explicitly with `node --test` and passed (54 tests: 53 passed, 1 existing skip, 0 failures). The editor test tool did not discover Node tests. `git diff --check` passed. Frontend fresh build/lint passed with the existing large-chunk warning. No fresh browser or live database/API validation.
