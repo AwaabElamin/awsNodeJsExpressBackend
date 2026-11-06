@@ -54,6 +54,11 @@ mockModule('../models/groceryMessage', {
     getByIdAdmin: async () => null,
     deleteByIdAdmin: async () => null
 });
+mockModule('../models/clientProject', {
+    listSummariesForOwnerAdmin: async (ownerId) => String(ownerId) === String(ids.client)
+        ? [{ _id: 'project-1', name: 'Booking portal', type: 'Web application', status: 'requested', requestCount: 1, openRequestCount: 1 }]
+        : []
+});
 mockModule('../lib/mailer', { sendVerificationEmail: async () => {} });
 mockModule('bcrypt', { compareSync: () => true, hashSync: () => 'hash' });
 
@@ -115,6 +120,8 @@ test('admin overview returns listings and conversations for a client', async () 
     assert.equal(res.body.data.conversations[0].accountSide, 'owner');
     assert.equal(res.body.data.conversations[0].messageCount, 2);
     assert.equal(res.body.data.conversations[0].lastMessage.body, 'Yes');
+    assert.equal(res.body.data.projects.length, 1);
+    assert.equal(res.body.data.projects[0].name, 'Booking portal');
 });
 
 test('admin overview works for visitors from the visitor side and never for Admin', async () => {

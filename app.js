@@ -77,7 +77,9 @@ async function start() {
   const autoRouter = require('./routes/auto');
   const groceriesRouter = require('./routes/groceries');
   const clientBriefsRouter = require('./routes/clientBriefs');
+  const clientProjectsRouter = require('./routes/clientProjects');
   const adminUsersRouter = require('./routes/adminUsers');
+  const adminClientProjectsRouter = require('./routes/adminClientProjects');
   const propertyManagementRouter = require('./propertyManagement/routes');
 
   app.use('/', authorizeRouter);
@@ -89,7 +91,9 @@ async function start() {
   app.use('/auto',autoRouter)
   app.use('/groceries', groceriesRouter);
   app.use('/client-briefs', clientBriefsRouter);
+  app.use('/client-projects', clientProjectsRouter);
   app.use('/admin/users', adminUsersRouter);
+  app.use('/admin/client-projects', adminClientProjectsRouter);
   app.use('/property-management/api', propertyManagementRouter);
   app.use(
     '/property-management/uploads',
