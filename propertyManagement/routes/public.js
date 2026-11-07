@@ -3,6 +3,7 @@ const { rateLimit } = require("express-rate-limit");
 const router = express.Router();
 const Property = require("../models/Property");
 const Inquiry = require("../models/Inquiry");
+const { collectImageUrls } = require("../services/propertyImages");
 const inquiryLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -38,6 +39,7 @@ router.get("/properties", async (req, res) => {
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       imageUrl: p.image_url,
+      imageUrls: collectImageUrls(p),
     }));
     res.json(formatted);
   } catch (err) {
@@ -64,6 +66,7 @@ router.get("/properties/:id", async (req, res) => {
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
       imageUrl: property.image_url,
+      imageUrls: collectImageUrls(property),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
