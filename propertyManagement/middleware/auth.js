@@ -1,6 +1,11 @@
-const JwtManager = require("../../jwt/jwtManager");
 const awaabUsers = require("../../models/users");
 const PropertyUser = require("../models/User");
+const {
+  readBearerIdentity,
+  normalizeEmail,
+  isAwaabAdmin,
+  isEligibleAwaabClient,
+} = require("./awaabIdentity");
 
 module.exports = async (req, res, next) => {
   const header = req.headers.authorization;
@@ -8,9 +13,8 @@ module.exports = async (req, res, next) => {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  const token = header.slice("Bearer ".length);
-  const identity = new JwtManager().verify(token);
-  if (!identity || identity.autoHub === true) {
+  const identity = readBearerIdentity(req);
+  if (!identity) {
     return res.status(401).json({ error: "Invalid session" });
   }
 
@@ -30,20 +34,15 @@ module.exports = async (req, res, next) => {
     }
 
     if (identity.email) {
-      const email = String(identity.email).trim().toLowerCase();
+      const email = normalizeEmail(identity.email);
       const user = await awaabUsers.findByEmail(email);
-      if (user && String(user.role || "").trim().toLowerCase() === "admin") {
+      if (isAwaabAdmin(user)) {
         req.userData = { userId: String(user._id), role: "admin" };
         req.companyAdmin = true;
         return next();
       }
 
-      if (
-        user &&
-        user.role === "Client" &&
-        user.isActive !== false &&
-        user.emailVerified !== false
-      ) {
+      if (isEligibleAwaabClient(user)) {
         const propertyUser = await PropertyUser.findOne({ email, status: "active" });
         if (propertyUser) {
           req.userData = {

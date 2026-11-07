@@ -2,7 +2,7 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-11-06
+Updated: 2026-11-07
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -10,6 +10,10 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last task:
+- **COMPLETED (PUBLISHED):** Awaaab Clients now create their own Property Management office on first entry and receive the `owner` role, mirroring `POST /auto/user` and `POST /groceries/user`. New `POST /property-management/api/auth/provision` (`propertyManagement/routes/auth.js`) guarded by new `propertyManagement/middleware/requireAwaabClient.js` (verified, active Awaaab `Client` required; Visitors, unverified/deactivated Clients, and property-user tokens are refused). New model static `User.provisionOwnerForAwaabAccount` (`propertyManagement/models/User.js`) creates an active `owner` with the Awaaab name/phone and an unguessable bcrypt placeholder password; duplicate-key races re-read the existing row. Existing active same-email property profiles are returned unchanged (200) and inactive ones refused (403). Provisioning also adds `property-management` to the Awaaab account's `platforms`. Shared JWT/eligibility helpers extracted to `propertyManagement/middleware/awaabIdentity.js` and reused by `middleware/auth.js` (behavior unchanged). README Property management section updated.
+- **Validation/publication:** `node --test "tests/*.test.js"`: 58 tests, 57 pass, 0 fail, 1 pre-existing skip (4 new provisioning tests in `tests/propertyManagementAuth.test.js`). End-to-end on the isolated local stack: 403 → 201 owner → 200 idempotent → `/auth/me` 200 owner → `/properties` 200; `platforms` flag set; local test data reset afterwards. Note: local `.env` points at a stale Atlas `users` DB (2 accounts) — production reads `MONGODB_URI_USERS` from Secrets Manager, so live verification is to be done on the deployed site. Local backend/frontend/Mongo stopped; ports 3000/3001/27018 free. Committed on `dev`, merged to `main`, pushed; hashes recorded in root `Apps/LAST_TASK.md`. No manual deployment step.
+
+Previous task:
 - **MERGED LOCALLY:** Today's task-history commit `90be6336ef90a74775bb70b3e1ce47e807bb1eff` was pushed to dev and merged into main for publication. Preserved both branches' history; backend application code unchanged, tests not rerun. Final remote hashes and push verification recorded in root Apps/LAST_TASK.md. Local services stopped, no deployment.
 
 Previous task:

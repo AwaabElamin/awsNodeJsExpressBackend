@@ -3,7 +3,11 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const JwtManager = require("../../jwt/jwtManager");
 const auth = require("../middleware/auth");
+const requireAwaabClient = require("../middleware/requireAwaabClient");
+const awaabUsers = require("../../models/users");
 const User = require("../models/User");
+
+const PLATFORM_ID = "property-management";
 
 const toFrontendUser = (user) => ({
   id: user._id,
@@ -22,6 +26,26 @@ router.get("/me", auth, (req, res) => {
     return res.status(403).json({ error: "Property-management access required" });
   }
   return res.json({ user: toFrontendUser(req.propertyUser) });
+});
+
+// First-time entry for an Awaaab Client: creates their own Property Management
+// office as an owner, mirroring POST /auto/user and POST /groceries/user.
+router.post("/provision", requireAwaabClient, async (req, res, next) => {
+  try {
+    const email = req.awaabEmail;
+    const existing = await User.findOne({ email });
+    if (existing && existing.status !== "active") {
+      return res.status(403).json({ error: "Property account is inactive" });
+    }
+
+    const user =
+      existing || (await User.provisionOwnerForAwaabAccount(req.awaabAccount, email));
+    await awaabUsers.enablePlatform(email, PLATFORM_ID);
+
+    return res.status(existing ? 200 : 201).json({ user: toFrontendUser(user) });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 router.post("/login", async (req, res) => {
