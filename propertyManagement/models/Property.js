@@ -14,6 +14,7 @@ const propertySchema = new mongoose.Schema(
     bedrooms: Number,
     bathrooms: Number,
     image_url: String,
+    image_urls: { type: [String], default: [] },
     owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     ownerships: [
       {

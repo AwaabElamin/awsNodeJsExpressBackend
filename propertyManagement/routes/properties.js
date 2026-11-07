@@ -6,6 +6,12 @@ const path = require("path");
 const Property = require("../models/Property");
 const Tenant = require("../models/Tenant");
 const User = require("../models/User");
+const {
+  MAX_PROPERTY_IMAGES,
+  collectImageUrls,
+  parseRetainedUrls,
+  mergeImageUrls,
+} = require("../services/propertyImages");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -26,6 +32,16 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+// Accepts the legacy single "image" field alongside the gallery "images" field.
+const uploadImages = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "images", maxCount: MAX_PROPERTY_IMAGES },
+]);
+const uploadedFiles = (req) => [
+  ...((req.files && req.files.image) || []),
+  ...((req.files && req.files.images) || []),
+];
 
 router.get("/", auth, async (req, res) => {
   try {
@@ -59,6 +75,7 @@ router.get("/", auth, async (req, res) => {
       bedrooms: p.bedrooms,
       bathrooms: p.bathrooms,
       imageUrl: p.image_url,
+      imageUrls: collectImageUrls(p),
       ownerId: p.owner_id?._id,
       ownerName: p.owner_id?.name,
       ownerships: p.ownerships,
@@ -70,7 +87,7 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-router.post("/", auth, upload.single("image"), async (req, res) => {
+router.post("/", auth, uploadImages, async (req, res) => {
   const {
     name,
     address,
@@ -88,8 +105,9 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
 
   if (req.userData.role === "owner") ownerId = req.userData.userId;
 
-  let imageUrl = req.body.imageUrl || "";
-  if (req.file) imageUrl = `/uploads/${req.file.filename}`;
+  const retained = parseRetainedUrls(req.body.imageUrls) || [];
+  if (req.body.imageUrl) retained.unshift(req.body.imageUrl);
+  const imageUrls = mergeImageUrls(retained, uploadedFiles(req));
 
   try {
     await Property.create({
@@ -103,7 +121,8 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
       units,
       bedrooms,
       bathrooms,
-      image_url: imageUrl,
+      image_url: imageUrls[0] || "",
+      image_urls: imageUrls,
       owner_id: ownerId || null,
       ownerships: ownerships ? JSON.parse(ownerships) : [],
     });
@@ -113,12 +132,27 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
   }
 });
 
-router.patch("/:id", auth, upload.single("image"), async (req, res) => {
+router.patch("/:id", auth, uploadImages, async (req, res) => {
   try {
     const { id } = req.params;
     const body = req.body;
-    if (req.file) body.image_url = `/uploads/${req.file.filename}`;
     if (body.ownerships) body.ownerships = JSON.parse(body.ownerships);
+
+    // Gallery: the client sends the retained URLs (in order) plus new files.
+    // When neither is present the existing photos are left untouched.
+    const retained = parseRetainedUrls(body.imageUrls);
+    const files = uploadedFiles(req);
+    delete body.imageUrls;
+    if (retained !== null || files.length > 0 || body.imageUrl) {
+      const existing = retained !== null
+        ? retained
+        : collectImageUrls((await Property.findById(id)) || {});
+      if (body.imageUrl && retained === null) existing.unshift(body.imageUrl);
+      const imageUrls = mergeImageUrls(existing, files);
+      body.image_urls = imageUrls;
+      body.image_url = imageUrls[0] || "";
+    }
+    delete body.imageUrl;
 
     // Map camelCase to snake_case for Mongoose
     if (body.subType) {
@@ -128,10 +162,6 @@ router.patch("/:id", auth, upload.single("image"), async (req, res) => {
     if (body.ownerId) {
       body.owner_id = body.ownerId;
       delete body.ownerId;
-    }
-    if (body.imageUrl) {
-      body.image_url = body.imageUrl;
-      delete body.imageUrl;
     }
 
     await Property.findByIdAndUpdate(id, { $set: body });
