@@ -1,5 +1,6 @@
 const users = require('../models/users');
 const groceryProducts = require('../models/groceryProduct');
+const { createPhotoUpload, getPhotoUrl } = require('../lib/autoHubS3');
 
 const text = (value, maxLength) => typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 
@@ -11,7 +12,36 @@ const isHttpUrl = (value) => {
     }
 };
 
-function normalizeProduct(input) {
+function isOwnerPhoto(value, ownerId) {
+    const prefix = `autohub/${String(ownerId)}/groceries/`;
+    return value.startsWith(prefix) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/i.test(value.slice(prefix.length));
+}
+
+async function formatProduct(product, includeKeys = false) {
+    const item = typeof product.toObject === 'function' ? product.toObject() : product;
+    const mainPhotoKey = item.mainPhoto || '';
+    const photoKeys = Array.isArray(item.photos) ? item.photos : [];
+    const [mainPhoto, photos] = await Promise.all([
+        getPhotoUrl(mainPhotoKey, item.ownerId, 'groceries'),
+        Promise.all(photoKeys.map(photo => getPhotoUrl(photo, item.ownerId, 'groceries')))
+    ]);
+    return { ...item, mainPhoto, photos, ...(includeKeys ? { mainPhotoKey, photoKeys } : {}) };
+}
+
+exports.createPhotoUploadUrl = async (req, res, next) => {
+    try {
+        const { contentType, size } = req.body || {};
+        const upload = await createPhotoUpload(req.autoUser.id, contentType, size, 'groceries');
+        return res.json({ status: 'success', data: upload });
+    } catch (error) {
+        if (error.message && /Choose a JPEG/.test(error.message)) {
+            return res.status(400).json({ status: 'fail', message: error.message });
+        }
+        return next(error);
+    }
+};
+
+function normalizeProduct(input, ownerId) {
     const source = input && typeof input === 'object' ? input : {};
     if (['country', 'state'].some((field) => typeof source[field] !== 'string' || !source[field].trim() || source[field].trim().length > 100)) {
         return { error: 'Country and state/region are required and must each contain 1 to 100 characters.' };
@@ -21,12 +51,14 @@ function normalizeProduct(input) {
     const unit = text(source.unit, 60);
     const mainPhoto = text(source.mainPhoto, 1200);
     const price = Number(source.price);
-    const photos = Array.isArray(source.photos)
-        ? source.photos.filter((photo) => typeof photo === 'string' && isHttpUrl(photo.trim())).slice(0, 20).map((photo) => photo.trim())
-        : [];
+    const validPhoto = (photo) => typeof photo === 'string' && photo.length <= 1200 && (isHttpUrl(photo) || isOwnerPhoto(photo, ownerId));
+    const photos = Array.isArray(source.photos) ? source.photos.map(photo => typeof photo === 'string' ? photo.trim() : photo) : [];
 
-    if (!title || !category || !unit || !mainPhoto || !isHttpUrl(mainPhoto)) {
-        return { error: 'Title, category, unit, and a valid main photo URL are required.' };
+    if (!title || !category || !unit || !mainPhoto || !validPhoto(mainPhoto)) {
+        return { error: 'Title, category, unit, and a valid main photo are required.' };
+    }
+    if (photos.length > 20 || photos.some(photo => !validPhoto(photo))) {
+        return { error: 'Choose up to 20 valid gallery photos.' };
     }
     if (!Number.isFinite(price) || price < 0 || price > 1000000) {
         return { error: 'Enter a valid product price.' };
@@ -114,7 +146,8 @@ exports.listPublic = async (req, res, next) => {
         ) : [];
         const byId = new Map(profiles.map(profile => [String(profile._id), profile]));
         const byEmail = new Map(profiles.map(profile => [profile.email.trim().toLowerCase(), profile]));
-        const data = products.map(({ ownerId, email, ...product }) => {
+        const formatted = await Promise.all(products.map(product => formatProduct(product)));
+        const data = formatted.map(({ ownerId, email, ...product }) => {
             const seller = byId.get(String(ownerId)) || byEmail.get(String(email || '').trim().toLowerCase());
             return {
                 ...product,
@@ -130,30 +163,31 @@ exports.listPublic = async (req, res, next) => {
 
 exports.listMine = async (req, res, next) => {
     try {
-        return res.json({ status: 'success', data: await groceryProducts.getProductsForOwner(req.autoUser.id, req.autoUser.email) });
+        const products = await groceryProducts.getProductsForOwner(req.autoUser.id, req.autoUser.email);
+        return res.json({ status: 'success', data: await Promise.all(products.map(product => formatProduct(product, true))) });
     } catch (error) {
         return next(error);
     }
 };
 
 exports.create = async (req, res, next) => {
-    const normalized = normalizeProduct(req.body);
+    const normalized = normalizeProduct(req.body, req.autoUser?.id);
     if (normalized.error) return res.status(400).json({ status: 'fail', message: normalized.error });
     try {
         const product = await groceryProducts.addProduct(normalized.data, req.autoUser.id, req.autoUser.email);
-        return res.status(201).json({ status: 'success', data: product });
+        return res.status(201).json({ status: 'success', data: await formatProduct(product, true) });
     } catch (error) {
         return next(error);
     }
 };
 
 exports.update = async (req, res, next) => {
-    const normalized = normalizeProduct(req.body);
+    const normalized = normalizeProduct(req.body, req.autoUser?.id);
     if (normalized.error) return res.status(400).json({ status: 'fail', message: normalized.error });
     try {
         const product = await groceryProducts.updateProduct(req.body?._id, req.autoUser.id, req.autoUser.email, normalized.data);
         if (!product) return res.status(404).json({ status: 'fail', message: 'Product not found.' });
-        return res.json({ status: 'success', data: product });
+        return res.json({ status: 'success', data: await formatProduct(product, true) });
     } catch (error) {
         return next(error);
     }

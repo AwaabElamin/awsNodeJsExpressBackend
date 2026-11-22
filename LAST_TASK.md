@@ -2,7 +2,7 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-11-22
+Updated: 2026-11-21
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -149,6 +149,10 @@ Local notes (2026-10-22):
 - Added `scripts/startLocalAutoSellerInfo.js` and `start:local-autohub-sellers` for a loopback-only, read-only local seller profile lookup. It maps listing owner IDs/emails to the shared users database and never writes to MongoDB.
 
 Last completed task:
+- **COMPLETED LOCALLY:** Added a grocery-enabled Client presigned photo upload route and owner-scoped keys under the existing AutoHub S3 prefix; grocery create/update validate photo ownership, and owner/public product responses sign stored keys while preserving external URLs. Updated `controllers/groceries.js`, `routes/groceries.js`, `lib/autoHubS3.js`, `README.md`, and focused tests. Frontend counterpart: file uploads, status, previews and removal in `ReactFrontAwaaabLLC`.
+- **Validation:** `node --test tests/groceryStructure.test.js tests/groceryPhotos.test.js tests/groceryS3.test.js tests/autoUsedCarsLocation.test.js` passed 21 tests, including scoped signing, foreign key rejection, URL fallback and platform access. Frontend build/lint and mocked mobile/desktop browser checks passed. Live S3 permissions/CORS, live API/auth and deployed behavior were not tested; removed S3 objects are not deleted; no deployment. Dev commit and push are being attempted; see Git status for publication.
+
+Previous completed task:
 - **COMPLETED LOCALLY:** Added single sign-on from verified, active Awaaab Client accounts into Property Management. `propertyManagement/middleware/auth.js` matches the central account's normalized email to an active Property Management user and retains that user's existing role for authorization; Visitors, inactive/unverified Clients, and Clients without an active linked Property Management profile are denied. Added `GET /property-management/api/auth/me` to return the linked property profile without password data. Existing Awaaab Admin and property-user token access remain supported. README documents the same-email provisioning requirement.
 - **Files:** `propertyManagement/middleware/auth.js`, `propertyManagement/routes/auth.js`, `tests/propertyManagementAuth.test.js`, `README.md`, and this snapshot. Frontend counterpart is in `ReactFrontAwaaabLLC`. Work is on `dev`; changes are uncommitted and unpushed.
 - **Validation:** Full backend test suite: 54 tests, 53 passed, 1 skipped, 0 failed. Frontend build and lint passed; browser smoke test used mocked API responses (no live backend/database). No deployment.

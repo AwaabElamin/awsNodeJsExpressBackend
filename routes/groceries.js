@@ -13,6 +13,7 @@ router.get('/user', requireAutoUser, groceries.getUser);
 
 router.get('/products/viewAll', groceries.listPublic);
 router.get('/products', requireAutoUser, requireGroceryPlatform, groceries.listMine);
+router.post('/products/photo-upload-url', requireAutoUser, requireGroceryPlatform, groceries.createPhotoUploadUrl);
 router.post('/products', requireAutoUser, requireGroceryPlatform, groceries.create);
 router.post('/products/edit', requireAutoUser, requireGroceryPlatform, groceries.update);
 router.post('/products/delete', requireAutoUser, requireGroceryPlatform, groceries.remove);
