@@ -2,7 +2,7 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-11-07
+Updated: 2026-11-15
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -10,6 +10,22 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last task:
+- **COMPLETED LOCALLY:** Frontend-only copy refinement in `ReactFrontAwaaabLLC/src/components/layout/MainMain.tsx` combines the toolkit's planning/product-design label and Open Client Office form availability note in one subtitle. The existing category split is preserved. No backend application, API or data changes; only this task history updated, preserving existing edits.
+- **Validation:** Frontend build and lint passed (existing chunk-size warning); browser checked About/Services at 390px and 1440px for the single subtitle, category grouping and no horizontal overflow. Backend tests were not run because there is no backend code change. Temporary frontend servers stopped. Task-history-only backend update committed and pushed on `dev`; no deployment.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend-only copy change in `ReactFrontAwaaabLLC/src/components/layout/MainMain.tsx` explains that features under "ALSO IN OUR TOOLKIT" become available after filling out the Open Client Office form. The existing category split is unchanged. No backend application, API or data changes; only this task history updated, preserving existing edits.
+- **Validation:** Frontend build and lint passed (existing chunk-size warning); browser checked both About/Services routes at 390px and 1440px for copy, grouping and no horizontal overflow. Backend tests, role-gated states, real authentication and live API behavior were not verified. Temporary frontend servers stopped. Backend remains on `dev`; changes uncommitted and undeployed.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend-only About & Services section split in `ReactFrontAwaaabLLC/src/components/layout/MainMain.tsx` and `MainMain.css`: "Awaab.net offering" contains Auto Service, Groceries Shop and Property Management; "Full PlatForm outside Awaab.net" contains separate Injaz and RIVO client platforms. Custom SaaS offering preserved. No backend application, API or data changes; only this task history updated, preserving its existing edits.
+- **Validation:** Frontend build/lint passed (existing chunk-size warning); frontend whitespace check passed; browser grouping/copy/overflow assertions passed 16 route/viewport/simulated-session combinations, plus mocked API-success descriptions and API-failure fallback checks. External assets/network requests partly failed. Backend tests, live API and real authentication were not run because there is no backend counterpart. Temporary frontend servers stopped. Backend remains on `dev`; history edits uncommitted, unpushed and undeployed.
+
+Previous task:
+- **COMPLETED LOCALLY:** Frontend-only About and Services copy update in `ReactFrontAwaaabLLC/src/components/layout/MainMain.tsx` distinguishes Awaab.net client offices from Injaz and RIVO's separate platforms and describes custom SaaS. No backend application or API changes; this note is the only backend change.
+- **Validation:** Frontend build and lint passed (build retained the existing chunk-size warning); browser checked both routes at mobile and desktop widths with guest and simulated Client sessions and mocked project data. Backend tests and live authentication/API were not run. Temporary frontend server stopped. Backend note and frontend changes are uncommitted on `dev`; no commit or deployment.
+
+Previous task:
 - **COMPLETED (PUBLISHED):** Property photo galleries. `propertyManagement/models/Property.js` adds `image_urls: [String]` (legacy `image_url` kept as the cover). `propertyManagement/routes/properties.js` replaces `upload.single("image")` with `upload.fields` accepting `images` (max 10) plus legacy `image`; `POST`/`PATCH` build the gallery from the client's retained `imageUrls` JSON list (display order) followed by new uploads, set `image_url` to the first photo, and a `PATCH` without image fields leaves photos untouched. New `propertyManagement/services/propertyImages.js` (`collectImageUrls`, `parseRetainedUrls`, `mergeImageUrls`: dedupes, accepts only `/uploads/...` or http(s) URLs, caps at 10). Owner list and public list/detail (`routes/public.js`) now return `imageUrls`. README documented. Uploaded files are not deleted from disk when removed from a gallery (pre-existing behaviour for replaced images). Frontend counterpart in `ReactFrontAwaaabLLC`.
 - **Validation:** `node --test "tests/*.test.js"`: 62 tests, 61 pass, 0 fail, 1 pre-existing skip (4 new in `tests/propertyImages.test.js`); `node --check` on modified routes/model. API end-to-end on the isolated local stack: create with 3 PNG uploads → owner list returned 3 `imageUrls` with cover = first; PATCH with reordered/removed retained list + 1 new upload → public detail returned the new 3-photo order and cover; cover file served 200 `image/png`; price-only PATCH left the gallery intact. Test property and its 5 upload files removed afterwards. Backend, frontend, Mongo container stopped; ports free. Committed on `dev`, merged to `main`, pushed; hashes in root `Apps/LAST_TASK.md`. Live verification pending on the deployed site.
 
