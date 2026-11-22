@@ -2,7 +2,7 @@
 
 Capilot do not know how to setup paypal button
 
-Updated: 2026-11-15
+Updated: 2026-11-22
 
 Auto-update policy:
 - Update this file at the end of every completed request.
@@ -10,6 +10,10 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last task:
+- **COMPLETED AND PUBLISHED:** Merged `dev` into `main` for `awsNodeJsExpressBackend` and pushed both `main` and `dev` to `origin`. Merge completed without application-code conflicts; the merge carried the existing task-history and application state from `dev`.
+- **Validation:** Fetched remotes, merged locally without conflicts, and verified branch refs before publication. Backend tests were not rerun because this request changed Git history only and no backend application code was modified; no deployment performed.
+
+Previous task:
 - **COMPLETED LOCALLY:** Frontend-only copy refinement in `ReactFrontAwaaabLLC/src/components/layout/MainMain.tsx` combines the toolkit's planning/product-design label and Open Client Office form availability note in one subtitle. The existing category split is preserved. No backend application, API or data changes; only this task history updated, preserving existing edits.
 - **Validation:** Frontend build and lint passed (existing chunk-size warning); browser checked About/Services at 390px and 1440px for the single subtitle, category grouping and no horizontal overflow. Backend tests were not run because there is no backend code change. Temporary frontend servers stopped. Task-history-only backend update committed and pushed on `dev`; no deployment.
 
