@@ -20,6 +20,16 @@ host. Startup does not create core roles, users, collections or indexes: use
 an already provisioned BuildSudan database, including its roles and indexes.
 The application still writes to that database when its normal API is used.
 
+For isolated local development, set `LOCAL_BUILDSUDAN_ENABLED=true` in
+`.env.local`, start the local MongoDB container, and run `npm run start:local`.
+The local launcher uses a separate `buildsudan_local` database on port 27018,
+generates a temporary BuildSudan JWT secret unless
+`LOCAL_BUILDSUDAN_JWT_SECRET` is set, and disables BuildSudan email delivery.
+Local data and accounts are separate from the standalone production database.
+Set `LOCAL_BUILDSUDAN_FRONTEND_URL` to the local web origin when it differs
+from `http://127.0.0.1:5173`. The JWT secret changes on each restart unless
+explicitly configured, invalidating local sessions.
+
 Set `BUILDSUDAN_FRONTEND_URL` to the public frontend URL (also allowed by CORS).
 It can be a comma-separated list of allowed origins; the first nonempty URL is
 used for verification and assessment notification links.

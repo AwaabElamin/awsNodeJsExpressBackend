@@ -10,6 +10,14 @@ Auto-update policy:
 - Purpose: give an instant answer to "what was last task we did?" after reopen.
 
 Last task:
+- **COMPLETED LOCALLY:** Prepared the local BuildSudan startup fix and isolated configuration for the requested `dev` and `main` publication. The integration remains opt-in in production; live database, mail and authentication were not verified. See the workspace task log for final push results.
+- **Validation:** Previously ran four targeted startup/integration tests and verified local web requests against disposable MongoDB. Checked the current diff and fetched remote branches; no deployment was manually performed.
+
+Previous task:
+- **COMPLETED LOCALLY:** Fixed `scripts/startLocal.js` to call the exported backend `start()` after environment setup. Added opt-in `LOCAL_BUILDSUDAN_ENABLED` handling in `scripts/localEnv.js`: the isolated MongoDB uses a separate `buildsudan_local` database and temporary JWT secret, and BuildSudan SMTP is disabled. Documented local setup and added `tests/startLocal.test.js`; ignored `.env.local` enables the local integration.
+- **Validation:** Four targeted startup/integration tests passed. Started the host with an isolated disposable MongoDB, verified Awaaab and BuildSudan health and real database-backed requests, and verified the BuildingSudan web client created/read a disposable request. Restarted the host and confirmed the local environment configuration and record persisted across that restart. Android API client reached the backend through a Node emulator-host mapping; no Android emulator/device was tested. Test container/data and temporary services stopped. No live database, mail, production configuration, merge, commit or push.
+
+Previous task:
 - **COMPLETED LOCALLY:** Prepared the BuildSudan integration for publication on `dev` only, per user choice. `main` and production configuration are unchanged. Existing authentication and Android donation compatibility risks below remain unresolved; the integration defaults to disabled.
 - **Validation:** Prior full backend suite passed (69 passed, 1 skipped); no live database, SMTP, client authentication, or deployed end-to-end testing. Publication status is recorded in the root workspace task log.
 

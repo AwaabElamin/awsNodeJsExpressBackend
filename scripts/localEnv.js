@@ -41,5 +41,18 @@ module.exports = function configureLocalEnvironment() {
         process.env[key] = '';
     }
 
+    if (process.env.LOCAL_BUILDSUDAN_ENABLED === 'true') {
+        process.env.BUILDSUDAN_ENABLED = 'true';
+        process.env.BUILDSUDAN_MONGODB_URI = mongoUri;
+        process.env.BUILDSUDAN_DB_NAME = 'buildsudan_local';
+        process.env.BUILDSUDAN_ADMIN_JWT_SECRET = process.env.LOCAL_BUILDSUDAN_JWT_SECRET || crypto.randomBytes(32).toString('hex');
+        process.env.BUILDSUDAN_FRONTEND_URL = process.env.LOCAL_BUILDSUDAN_FRONTEND_URL || 'http://127.0.0.1:5173';
+        for (const key of ['BUILDSUDAN_SMTP_HOST', 'BUILDSUDAN_SMTP_PORT', 'BUILDSUDAN_SMTP_SECURE', 'BUILDSUDAN_SMTP_USER', 'BUILDSUDAN_SMTP_PASS', 'BUILDSUDAN_GOOGLE_CLIENT_ID', 'BUILDSUDAN_GOOGLE_CLIENT_SECRET', 'BUILDSUDAN_GOOGLE_REFRESH_TOKEN', 'BUILDSUDAN_CONTACT_RECEIVER_EMAIL']) {
+            process.env[key] = '';
+        }
+    } else {
+        process.env.BUILDSUDAN_ENABLED = 'false';
+    }
+
     return { mongoUri };
 };

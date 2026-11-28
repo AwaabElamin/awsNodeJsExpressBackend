@@ -1,4 +1,4 @@
 const configureLocalEnvironment = require('./localEnv');
 
 configureLocalEnvironment();
-require('../app');
+require('../app').start();
