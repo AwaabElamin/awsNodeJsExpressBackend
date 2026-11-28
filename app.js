@@ -6,43 +6,7 @@ var cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const DB = require('./lib/db');
 
-async function start() {
-  // Connect to databases before requiring route handlers/models
-  try {
-    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI;
-
-    console.log('Connecting to default (users) MongoDB...');
-    await DB.connect(usersUri);
-    console.log('Connected to users DB');
-
-    console.log('Creating named connections for resume, carshop and delivery...');
-    await DB.createConnection('resume', usersUri, { dbName: process.env.MONGODB_DB_RESUME || 'resume' });
-    await DB.createConnection('carshop', usersUri, { dbName: process.env.MONGODB_DB_CARSHOP || 'CarShop' });
-    await DB.createConnection('delivery', usersUri, { dbName: process.env.MONGODB_DB_DELIVERY || 'Delivery' });
-    await DB.createConnection('groceries', usersUri, { dbName: process.env.MONGODB_DB_GROCERIES || 'Groceries' });
-    await DB.createConnection('property-management', usersUri, {
-      dbName: process.env.MONGODB_DB_PROPERTY_MANAGEMENT || 'PropertyManagement'
-    });
-    const PropertyAccount = require('./propertyManagement/models/Account');
-    if (await PropertyAccount.countDocuments() === 0) {
-      await PropertyAccount.create([
-        { code: '1010', name: 'Cash', type: 'asset', is_system: true },
-        { code: '1020', name: 'Bank', type: 'asset', is_system: true },
-        { code: '2010', name: 'Owner payable', type: 'liability', is_system: true },
-        { code: '2020', name: 'Security deposits', type: 'liability', is_system: true },
-        { code: '2030', name: 'VAT payable', type: 'liability', is_system: true },
-        { code: '4010', name: 'Commission revenue', type: 'revenue', is_system: true },
-        { code: '4020', name: 'Brokerage revenue', type: 'revenue', is_system: true },
-        { code: '5010', name: 'Maintenance expenses', type: 'expense', is_system: true }
-      ]);
-    }
-    console.log('All DB connections are ready');
-  } catch (err) {
-    console.error('Failed to connect to MongoDB', err);
-    process.exit(1);
-  }
-
-  // Now set up the app (require routes after DB connections ready)
+async function createApp(options = {}) {
   var path = require('path');
   var app = express();
   app.set('trust proxy', 1);
@@ -52,6 +16,10 @@ async function start() {
   app.set('view engine', 'jade');
 
   app.use(logger('dev'));
+  // BuildSudan has its own CORS and 10 MB JSON policy; mount before host parsers.
+  const buildSudanRouter = options.buildSudanRouter || await require('./lib/buildSudan')
+    .createBuildSudanRouter(options.buildSudanEnv || process.env);
+  app.use('/buildsudan/api', buildSudanRouter);
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
@@ -107,9 +75,51 @@ async function start() {
     res.json({ status: 'error', data: err });
   });
 
+  return app;
+}
+
+async function start() {
+  // Connect to databases before requiring route handlers/models
+  try {
+    const usersUri = process.env.MONGODB_URI_USERS || process.env.MONGODB_URI;
+
+    console.log('Connecting to default (users) MongoDB...');
+    await DB.connect(usersUri);
+    console.log('Connected to users DB');
+
+    console.log('Creating named connections for resume, carshop and delivery...');
+    await DB.createConnection('resume', usersUri, { dbName: process.env.MONGODB_DB_RESUME || 'resume' });
+    await DB.createConnection('carshop', usersUri, { dbName: process.env.MONGODB_DB_CARSHOP || 'CarShop' });
+    await DB.createConnection('delivery', usersUri, { dbName: process.env.MONGODB_DB_DELIVERY || 'Delivery' });
+    await DB.createConnection('groceries', usersUri, { dbName: process.env.MONGODB_DB_GROCERIES || 'Groceries' });
+    await DB.createConnection('property-management', usersUri, {
+      dbName: process.env.MONGODB_DB_PROPERTY_MANAGEMENT || 'PropertyManagement'
+    });
+    const PropertyAccount = require('./propertyManagement/models/Account');
+    if (await PropertyAccount.countDocuments() === 0) {
+      await PropertyAccount.create([
+        { code: '1010', name: 'Cash', type: 'asset', is_system: true },
+        { code: '1020', name: 'Bank', type: 'asset', is_system: true },
+        { code: '2010', name: 'Owner payable', type: 'liability', is_system: true },
+        { code: '2020', name: 'Security deposits', type: 'liability', is_system: true },
+        { code: '2030', name: 'VAT payable', type: 'liability', is_system: true },
+        { code: '4010', name: 'Commission revenue', type: 'revenue', is_system: true },
+        { code: '4020', name: 'Brokerage revenue', type: 'revenue', is_system: true },
+        { code: '5010', name: 'Maintenance expenses', type: 'expense', is_system: true }
+      ]);
+    }
+    console.log('All DB connections are ready');
+  } catch (err) {
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
+  }
+
+  const app = await createApp();
   app.listen(process.env.PORT || 3000, () => {
     console.log('Server listening on port', process.env.PORT || 3000);
   });
 }
 
-start();
+module.exports = { createApp, start };
+
+if (require.main === module) start();
